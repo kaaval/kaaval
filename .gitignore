@@ -1,0 +1,42 @@
+# Environment / secrets
+.env
+*.env.local
+*.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+audit.log
+
+# Go binaries
+cloud-scanner/scanner
+cloud-scanner/argus-scanner
+agent/argus-agent
+*.exe
+
+# Node / Next.js
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+
+# Compiled K8s operator
+operator/bin/
+
+# Docker / build artifacts
+*.tar
+*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

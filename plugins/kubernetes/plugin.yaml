@@ -1,0 +1,30 @@
+meta:
+  id: kubernetes
+  name: Kubernetes
+  category: infrastructure
+  description: >
+    Monitor Kubernetes clusters — workload visibility, CVE scanning, RBAC analysis,
+    and runtime network topology via the Argus agent (DaemonSet mode).
+
+connector:
+  type: agent_module
+  auth_schema:
+    kubeconfig:
+      type: string
+      required: false
+      description: Path to kubeconfig (in-cluster service account used if omitted)
+    api_server_url:
+      type: string
+      required: false
+      description: Remote cluster API server URL (for multi-cluster EE mode)
+    bearer_token:
+      type: string
+      required: false
+      description: Service account bearer token for remote cluster
+
+normalization:
+  finding_type: vuln
+  severity: severity
+  title: title
+  description: description
+  cve_id: cve_id

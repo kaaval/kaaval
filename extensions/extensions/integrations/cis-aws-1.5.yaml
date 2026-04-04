@@ -1,0 +1,31 @@
+meta:
+  id: "cis-aws-1.5"
+  name: "CIS AWS Foundations Benchmark v1.5"
+  version: "1.5.0"
+  description: "Standard CIS benchmarks for AWS. Checks for IAM configurations, Logging, and Monitoring."
+  price_tier: "Free"
+  is_premium: false
+
+checks:
+  - id: "IAM_NO_ADMIN"
+    name: "Ensure no 'admin' users"
+    description: "IAM Users should not have 'admin' in their name as a best practice."
+    severity: "HIGH"
+    target_asset_type: "IAM_USER"
+    condition:
+      operator: "contains"
+      field: "id"
+      value: "admin"
+      negate: true # We want it NOT to contain admin
+    remediation: "Rename the user or remove administrative privileges."
+
+  - id: "IMG_NO_LATEST"
+    name: "Ensure Container Images do not use :latest"
+    description: "Using :latest tag prevents reproducibility and can introduce breaking changes."
+    severity: "HIGH"
+    target_asset_type: "EKS_CLUSTER"
+    condition:
+      operator: "list_none_match"
+      field: "details.Images" # Assuming JSON structure
+      suffix: ":latest"
+    remediation: "Pin images to specific versions or SHA digests."

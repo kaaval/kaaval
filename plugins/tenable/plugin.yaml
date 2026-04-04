@@ -1,0 +1,30 @@
+meta:
+  id: tenable
+  name: Tenable.io
+  category: vulnerability
+  description: >
+    Pull vulnerability findings from Tenable.io via the Workbenches API.
+    (v1.1 — coming soon)
+
+connector:
+  type: pull
+  schedule: "0 */6 * * *"
+  auth_schema:
+    access_key:
+      type: string
+      required: true
+      secret: true
+      description: Tenable.io Access Key
+    secret_key:
+      type: string
+      required: true
+      secret: true
+      description: Tenable.io Secret Key
+
+normalization:
+  finding_type: vuln
+  severity: severity.name       # Critical | High | Medium | Low | Info
+  title: plugin.name
+  description: plugin.description
+  asset_id: asset.hostname
+  cve_id: plugin.cve

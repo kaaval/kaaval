@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  /* Default (Space) */
+  --neon-blue: #00d4ff;
+  --neon-green: #00ff9d;
+  --neon-purple: #bd00ff;
+  --neon-red: #ff0055;
+  --neon-amber: #ffbe0b;
+  --bg-space: #0a0a12;
+  --surface: #13131f;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --nav-bg: rgba(0, 0, 0, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --tab-active-text: #000000;
+}
+
+:root[data-theme='solarized-day'] {
+  --neon-blue: #268bd2;
+  --neon-green: #859900;
+  --neon-purple: #6c71c4;
+  --neon-red: #dc322f;
+  --neon-amber: #b58900;
+  --bg-space: #fdf6e3;
+  --surface: #eee8d5;
+  --card-bg: #ffffff;
+  --nav-bg: #eee8d5;
+  --text-primary: #586e75;
+  --text-secondary: #93a1a1;
+  --border-color: #d33682;
+  --tab-active-text: #fdf6e3;
+}
+
+:root[data-theme='solarized-night'] {
+  --neon-blue: #268bd2;
+  --neon-green: #859900;
+  --neon-purple: #6c71c4;
+  --neon-red: #dc322f;
+  --neon-amber: #b58900;
+  --bg-space: #002b36;
+  --surface: #073642;
+  --card-bg: #073642;
+  --nav-bg: #073642;
+  --text-primary: #93a1a1;
+  --text-secondary: #839496;
+  --border-color: #2aa198;
+  --tab-active-text: #fdf6e3;
+}
+
+:root[data-theme='cyberpunk'] {
+  --neon-blue: #00f0ff;
+  --neon-green: #0aff0a;
+  --neon-purple: #bc13fe;
+  --neon-red: #ff003c;
+  --neon-amber: #fcee0a;
+  --bg-space: #000000;
+  --surface: #121212;
+  --card-bg: rgba(20, 20, 20, 0.9);
+  --nav-bg: #000000;
+  --text-primary: #ffff00;
+  --text-secondary: #00f0ff;
+  --border-color: #00f0ff;
+  --tab-active-text: #000000;
+}
+
+body {
+  background-color: var(--bg-space);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer components {
+  .glass-card {
+    background-color: var(--card-bg);
+    @apply backdrop-blur-lg border border-white/10 rounded-xl shadow-xl;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-all shadow-lg hover:shadow-blue-500/20;
+  }
+}

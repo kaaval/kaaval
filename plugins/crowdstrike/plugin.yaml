@@ -1,0 +1,34 @@
+meta:
+  id: crowdstrike
+  name: CrowdStrike Falcon
+  category: edr
+  description: >
+    Pull detections and alerts from CrowdStrike Falcon via the Event Streams API.
+    (v1.1 — coming soon)
+
+connector:
+  type: pull
+  schedule: "*/2 * * * *"
+  auth_schema:
+    client_id:
+      type: string
+      required: true
+      description: Falcon API client ID
+    client_secret:
+      type: string
+      required: true
+      secret: true
+      description: Falcon API client secret
+    base_url:
+      type: string
+      required: false
+      default: https://api.crowdstrike.com
+      description: Falcon API base URL (US-1 default)
+
+normalization:
+  finding_type: alert
+  severity: event.SeverityName
+  title: event.DetectDescription
+  description: event.CommandLine
+  asset_id: event.ComputerName
+  cve_id: event.CveId

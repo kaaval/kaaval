@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic[email]
+python-jose[cryptography]
+passlib
+bcrypt==3.2.2
+python-multipart
+httpx
+kubernetes
+apscheduler
+reportlab
+cryptography
+pyyaml

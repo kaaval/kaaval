@@ -1,0 +1,33 @@
+meta:
+  id: aws
+  name: Amazon Web Services
+  category: cloud
+  description: >
+    Discover and assess AWS resources (EC2, EKS, IAM, VPC, S3) against CIS AWS 1.5
+    compliance rules. Connects via IAM role assumption for cross-account scanning.
+
+connector:
+  type: pull
+  auth_schema:
+    role_arn:
+      type: string
+      required: true
+      description: IAM Role ARN to assume (arn:aws:iam::123456789012:role/ArgusScanner)
+    external_id:
+      type: string
+      required: false
+      description: Optional ExternalId for the role trust policy
+    regions:
+      type: array
+      required: false
+      description: List of regions to scan. Leave empty for all enabled regions.
+
+normalization:
+  finding_type: policy_violation
+  severity: details.compliance.severity
+  title: details.compliance.rule_name
+  description: details.compliance.description
+  asset_id: id
+
+compliance_rules:
+  framework: cis-aws-1.5

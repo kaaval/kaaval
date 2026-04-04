@@ -1,0 +1,9 @@
+meta:
+  id: "nvd-feed"
+  name: "NVD Vulnerability Feed"
+  version: "2.0"
+  description: "National Vulnerability Database integration for CVE matching."
+  price_tier: "Free"
+  is_premium: false
+
+checks: [] # Data-only integration, no active checks defined yet

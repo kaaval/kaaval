@@ -1,0 +1,42 @@
+meta:
+  id: wazuh
+  name: Wazuh
+  category: siem
+  description: >
+    Pull security alerts from a Wazuh manager via the Wazuh REST API.
+    Normalises alerts into the Argus finding schema for unified visibility.
+
+connector:
+  type: pull
+  schedule: "*/5 * * * *"   # every 5 minutes
+  auth_schema:
+    host:
+      type: string
+      required: true
+      description: Wazuh manager hostname or IP (e.g. wazuh.internal)
+    port:
+      type: integer
+      required: false
+      default: 55000
+      description: Wazuh API port
+    username:
+      type: string
+      required: true
+      description: Wazuh API username
+    password:
+      type: string
+      required: true
+      secret: true
+      description: Wazuh API password
+    verify_ssl:
+      type: boolean
+      required: false
+      default: false
+      description: Verify Wazuh TLS certificate
+
+normalization:
+  finding_type: alert
+  severity: data.rule.level_label         # CRITICAL | HIGH | MEDIUM | LOW
+  title: data.rule.description
+  description: data.full_log
+  asset_id: data.agent.name

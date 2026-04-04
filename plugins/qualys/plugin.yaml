@@ -1,0 +1,33 @@
+meta:
+  id: qualys
+  name: Qualys VMDR
+  category: vulnerability
+  description: >
+    Pull vulnerability findings from Qualys VMDR via the Qualys API v2.
+    (v1.1 — coming soon)
+
+connector:
+  type: pull
+  schedule: "0 */6 * * *"    # every 6 hours
+  auth_schema:
+    api_url:
+      type: string
+      required: true
+      description: Qualys API URL (e.g. https://qualysapi.qualys.com)
+    username:
+      type: string
+      required: true
+      description: Qualys API username
+    password:
+      type: string
+      required: true
+      secret: true
+      description: Qualys API password
+
+normalization:
+  finding_type: vuln
+  severity: SEVERITY          # 1-5 mapped to CRITICAL/HIGH/MEDIUM/LOW/INFO
+  title: TITLE
+  description: DIAGNOSIS
+  asset_id: IP
+  cve_id: CVE_ID

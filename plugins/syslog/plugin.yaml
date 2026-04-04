@@ -1,0 +1,32 @@
+meta:
+  id: syslog
+  name: Generic Syslog
+  category: logging
+  description: >
+    Receive syslog messages pushed by any server, network device, or application.
+    Raw lines are stored for search; structured alerts matching patterns are surfaced
+    as findings in the dashboard.
+
+connector:
+  type: push
+  auth_schema:
+    webhook_secret:
+      type: string
+      required: false
+      secret: true
+      description: >
+        HMAC-SHA256 secret used to verify webhook payloads.
+        Argus adds X-Argus-Signature header to validate the source.
+    pattern_rules:
+      type: array
+      required: false
+      description: >
+        List of regex patterns that promote a syslog line to a Finding.
+        Example: ["OOM killer", "segfault", "authentication failure"]
+
+normalization:
+  finding_type: log_event
+  severity: level                # INFO | WARN | ERROR | CRITICAL (from structured syslog)
+  title: message
+  description: raw
+  asset_id: hostname
