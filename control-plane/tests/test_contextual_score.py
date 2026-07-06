@@ -1,26 +1,27 @@
 """
 Unit tests for the Contextual Risk Score formula — the core claim of the
-scoring engine (same CVE, different business context, different rank).
+scoring engine (same finding, different business context, different rank).
 
-Pure-function tests against cve_service directly: no DB, no live cluster,
-no CVE feed network access needed, unlike the HTTP-level smoke test.
+Pure-function tests against the shared `scoring` module directly: no DB, no
+live cluster, no network access needed, unlike the HTTP-level smoke test.
 """
 
-from app.cve_service import _contextual_score, _match_cves
+from app.scoring import compute_contextual_score
+from app.cve_service import _match_cves
 from app.models import CVEEntry
 
 
 def test_environment_changes_score():
-    prod_score, prod_factors = _contextual_score(7.5, "HIGH", {"environment": "production"})
-    dev_score, dev_factors = _contextual_score(7.5, "HIGH", {"environment": "dev"})
+    prod_score, prod_factors = compute_contextual_score(7.5, "HIGH", {"environment": "production"})
+    dev_score, dev_factors = compute_contextual_score(7.5, "HIGH", {"environment": "dev"})
 
     assert prod_score > dev_score
     assert prod_factors["environment"]["weight"] > dev_factors["environment"]["weight"]
 
 
 def test_data_classification_and_exposure_stack():
-    baseline, _ = _contextual_score(7.5, "HIGH", {})
-    elevated, factors = _contextual_score(
+    baseline, _ = compute_contextual_score(7.5, "HIGH", {})
+    elevated, factors = compute_contextual_score(
         7.5, "HIGH",
         {
             "environment": "production",
@@ -36,10 +37,10 @@ def test_data_classification_and_exposure_stack():
     assert factors["exposure"]["weight"] > 1.0
 
 
-def test_missing_cvss_falls_back_to_severity_band():
-    score, factors = _contextual_score(None, "CRITICAL", {})
+def test_missing_raw_score_falls_back_to_severity_band():
+    score, factors = compute_contextual_score(None, "CRITICAL", {})
     assert score > 0
-    assert factors["base_severity"]["cvss_score"] is None
+    assert factors["base_severity"]["raw_score"] is None
 
 
 def test_match_cves_ranks_by_contextual_score_not_just_severity():

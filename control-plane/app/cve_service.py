@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from .models import CVEFeed, CVEEntry, CVEScanResult, K8sCVEScanResult, ClusterRegistration, ScanContext
 from .addon_detection import ADDON_IMAGE_PATTERNS, image_version as _image_version
+from .scoring import compute_contextual_score
 
 logger = logging.getLogger(__name__)
 
@@ -72,51 +73,6 @@ def _cvss_to_severity(score: Optional[float]) -> str:
     if score >= 4.0:
         return "MEDIUM"
     return "LOW"
-
-
-# ── Contextual Risk Score ──────────────────────────────────────────────────────
-# Score = base severity × environment weight × data classification weight ×
-#         compliance scope weight × exposure weight — see project_usp.md.
-# The point is not the number, it's that every finding says *why* it ranks
-# where it does, instead of a flat CVSS sort every competitor already does.
-
-_SEVERITY_BASE = {"CRITICAL": 9.5, "HIGH": 7.5, "MEDIUM": 5.5, "LOW": 2.5, "UNKNOWN": 1.0}
-_ENV_WEIGHT = {"production": 1.5, "staging": 1.2, "dev": 0.5}
-_DATA_CLASS_WEIGHT = {"pii": 1.5, "financial": 1.5, "phi": 1.5, "internal": 1.0, "public": 0.8}
-_EXPOSURE_WEIGHT = {"internet-facing": 1.4, "internal": 1.0}
-
-
-def _contextual_score(
-    cvss_score: Optional[float], severity: str, context: dict
-) -> tuple[float, dict]:
-    """
-    Compute an explainable Contextual Risk Score for one finding.
-
-    Returns (score, factors) where `factors` names each multiplier applied,
-    so the score is never a black box — it's the whole point of the feature.
-    """
-    base = cvss_score if cvss_score is not None else _SEVERITY_BASE.get(severity, 1.0)
-
-    environment = context.get("environment", "production")
-    data_classification = context.get("data_classification", "internal")
-    compliance_scope = context.get("compliance_scope") or []
-    exposure = context.get("exposure", "internal")
-
-    env_weight = _ENV_WEIGHT.get(environment, 1.0)
-    data_weight = _DATA_CLASS_WEIGHT.get(data_classification, 1.0)
-    compliance_weight = 1.3 if compliance_scope else 1.0
-    exposure_weight = _EXPOSURE_WEIGHT.get(exposure, 1.0)
-
-    score = base * env_weight * data_weight * compliance_weight * exposure_weight
-
-    factors = {
-        "base_severity": {"value": severity, "cvss_score": cvss_score, "weight": round(base, 2)},
-        "environment": {"value": environment, "weight": env_weight},
-        "data_classification": {"value": data_classification, "weight": data_weight},
-        "compliance_scope": {"value": compliance_scope, "weight": compliance_weight},
-        "exposure": {"value": exposure, "weight": exposure_weight},
-    }
-    return round(score, 2), factors
 
 
 def _strip_html(text: str) -> str:
@@ -588,7 +544,7 @@ def _match_cves(
                         break
 
         if affected_matches:
-            contextual_score, score_factors = _contextual_score(
+            contextual_score, score_factors = compute_contextual_score(
                 entry.cvss_score, entry.severity, context or {}
             )
             findings.append({

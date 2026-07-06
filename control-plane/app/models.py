@@ -186,6 +186,17 @@ class ScanContext(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
+class RBACScanResult(Base):
+    """RBAC misconfiguration scan — same JSON-blob-per-scan shape as CVEScanResult."""
+    __tablename__ = "rbac_scan_results"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scanned_at = Column(DateTime, default=datetime.datetime.utcnow)
+    total_bindings_checked = Column(Integer, default=0)
+    affected_count = Column(Integer, default=0)
+    findings = Column(JSON, nullable=True)
+    status = Column(String, default="completed")
+
+
 class CVEScanResult(Base):
     __tablename__ = "cve_scan_results"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

@@ -168,9 +168,23 @@ class K8sClient:
             role_bindings = self.rbac_v1.list_role_binding_for_all_namespaces().items
             cluster_role_bindings = self.rbac_v1.list_cluster_role_binding().items
             
+            def _rules(rules):
+                return [{
+                    "verbs": rule.verbs or [],
+                    "resources": rule.resources or [],
+                    "api_groups": rule.api_groups or [],
+                    "resource_names": rule.resource_names or [],
+                } for rule in (rules or [])]
+
             return {
-                "roles": [{"name": r.metadata.name, "namespace": r.metadata.namespace, "kind": "Role"} for r in roles],
-                "cluster_roles": [{"name": r.metadata.name, "kind": "ClusterRole"} for r in cluster_roles],
+                "roles": [{
+                    "name": r.metadata.name, "namespace": r.metadata.namespace, "kind": "Role",
+                    "rules": _rules(r.rules),
+                } for r in roles],
+                "cluster_roles": [{
+                    "name": r.metadata.name, "kind": "ClusterRole",
+                    "rules": _rules(r.rules),
+                } for r in cluster_roles],
                 "role_bindings": [{
                     "name": rb.metadata.name,
                     "namespace": rb.metadata.namespace,

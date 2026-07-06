@@ -1,16 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../components/AuthContext";
+import SeverityBadge from "../../components/SeverityBadge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-const SEV_STYLE: Record<string, string> = {
-    CRITICAL: "bg-red-900/50 text-red-400 border border-red-700/50",
-    HIGH:     "bg-orange-900/40 text-orange-400 border border-orange-700/50",
-    MEDIUM:   "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50",
-    LOW:      "bg-blue-900/40 text-blue-400 border border-blue-700/50",
-    UNKNOWN:  "bg-gray-800 text-gray-400 border border-gray-700",
-};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +20,7 @@ interface AffectedMatch {
 interface ScoreFactor {
     value: unknown;
     weight: number;
-    cvss_score?: number | null;
+    raw_score?: number | null;
 }
 
 interface K8sFinding {
@@ -75,14 +68,6 @@ interface CVEEntry {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function SeverityBadge({ sev }: { sev: string }) {
-    return (
-        <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${SEV_STYLE[sev] ?? SEV_STYLE.UNKNOWN}`}>
-            {sev}
-        </span>
-    );
-}
 
 function SevBar({ breakdown }: { breakdown: Record<string, number> }) {
     const order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;

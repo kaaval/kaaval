@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from . import models, database, auth, audit
 from .license import license_gate
 from .cve_service import cve_service as _cve_service
-from .routers import cve
+from .routers import cve, rbac
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,7 @@ app.add_middleware(
 # ── Routers ────────────────────────────────────────────────────────────────────
 
 app.include_router(cve.router)
+app.include_router(rbac.router)
 
 # ── Default CVE feeds ──────────────────────────────────────────────────────────
 

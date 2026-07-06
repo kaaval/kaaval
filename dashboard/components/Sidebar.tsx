@@ -11,6 +11,7 @@ export default function Sidebar() {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: '🏠' },
         { name: 'CVE Scanner', path: '/cve', icon: '🔴' },
+        { name: 'RBAC', path: '/rbac', icon: '🔑' },
         { name: 'Docs', path: '/docs', icon: '📖' },
         { name: 'Settings', path: '/settings', icon: '⚙️' },
     ];

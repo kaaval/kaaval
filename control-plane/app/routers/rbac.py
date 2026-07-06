@@ -1,0 +1,36 @@
+"""RBAC scan router — misconfiguration findings scored by the shared Contextual Risk Score engine."""
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from ..database import get_db
+from ..auth import get_current_active_user
+from ..rbac_service import scan_rbac, get_latest_rbac_scan
+
+router = APIRouter(prefix="/rbac", tags=["RBAC"])
+
+
+@router.post("/scan")
+def run_rbac_scan(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_active_user),
+):
+    """
+    Scan the live cluster's Roles, ClusterRoles, and bindings for
+    misconfigurations (wildcard permissions, cluster-admin bound to broad
+    identities, broad secrets access, exec/attach grants), scored by the
+    same Contextual Risk Score engine CVE findings use.
+    """
+    return scan_rbac(db, user.tenant_id)
+
+
+@router.get("/scan/latest")
+def get_latest_scan(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_active_user),
+):
+    """Return the most recent RBAC scan result."""
+    result = get_latest_rbac_scan(db)
+    if not result:
+        return {"message": "No scan results yet. POST /rbac/scan to run the first scan."}
+    return result
