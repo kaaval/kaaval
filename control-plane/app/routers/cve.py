@@ -12,10 +12,7 @@ from ..auth import get_current_active_user
 from ..models import CVEFeed, CVEEntry, ClusterRegistration, K8sCVEScanResult
 from ..cve_service import cve_service, K8S_FEED_NAME, K8S_OFFICIAL_CVE_FEED_URL
 from ..report_service import build_cve_scan_pdf
-
-VALID_ENVIRONMENTS = {"production", "staging", "dev"}
-VALID_DATA_CLASSIFICATIONS = {"public", "internal", "pii", "financial", "phi"}
-VALID_EXPOSURES = {"internet-facing", "internal"}
+from ..scoring import VALID_ENVIRONMENTS, VALID_DATA_CLASSIFICATIONS, VALID_EXPOSURES
 
 router = APIRouter(prefix="/cve", tags=["CVE"])
 

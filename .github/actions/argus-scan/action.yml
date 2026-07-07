@@ -1,0 +1,64 @@
+name: "Argus RBAC Scan"
+description: >-
+  Scan Kubernetes RBAC manifests (shift-left) or a live cluster with Argus and
+  gate the pipeline on the Contextual Risk Score — context-aware gating instead
+  of a flat severity threshold.
+author: "rrskris"
+
+inputs:
+  manifests:
+    description: "Path to RBAC YAML manifests (file or directory) — shift-left mode"
+    required: false
+  kubeconfig:
+    description: "Path to a kubeconfig file — live-cluster mode (use a read-only CI service account)"
+    required: false
+  context-file:
+    description: "Path to the argus.yaml risk context (risk context as code)"
+    required: false
+  fail-on-score:
+    description: "Fail the job if any finding's contextual score is >= this value"
+    required: false
+  fail-on-severity:
+    description: "Fail the job if any finding is at/above this severity (LOW/MEDIUM/HIGH/CRITICAL)"
+    required: false
+  output:
+    description: "Output format: table or json"
+    required: false
+    default: "table"
+  argus-ref:
+    description: "Git ref of Argus to run"
+    required: false
+    default: "main"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out Argus
+      uses: actions/checkout@v4
+      with:
+        repository: rrskris/Argus
+        ref: ${{ inputs.argus-ref }}
+        path: .argus-scan
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+        cache-dependency-path: .argus-scan/control-plane/requirements.txt
+
+    - name: Install Argus
+      shell: bash
+      run: pip install -q -r .argus-scan/control-plane/requirements.txt
+
+    - name: Run Argus scan
+      shell: bash
+      working-directory: .argus-scan/control-plane
+      run: |
+        args=(scan rbac --output "${{ inputs.output }}")
+        [ -n "${{ inputs.manifests }}" ]        && args+=(--manifests "$GITHUB_WORKSPACE/${{ inputs.manifests }}")
+        [ -n "${{ inputs.kubeconfig }}" ]       && args+=(--kubeconfig "$GITHUB_WORKSPACE/${{ inputs.kubeconfig }}")
+        [ -n "${{ inputs.context-file }}" ]     && args+=(--context-file "$GITHUB_WORKSPACE/${{ inputs.context-file }}")
+        [ -n "${{ inputs.fail-on-score }}" ]    && args+=(--fail-on-score "${{ inputs.fail-on-score }}")
+        [ -n "${{ inputs.fail-on-severity }}" ] && args+=(--fail-on-severity "${{ inputs.fail-on-severity }}")
+        python -m app.cli "${args[@]}"

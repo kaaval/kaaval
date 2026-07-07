@@ -15,6 +15,13 @@ _ENV_WEIGHT = {"production": 1.5, "staging": 1.2, "dev": 0.5}
 _DATA_CLASS_WEIGHT = {"pii": 1.5, "financial": 1.5, "phi": 1.5, "internal": 1.0, "public": 0.8}
 _EXPOSURE_WEIGHT = {"internet-facing": 1.4, "internal": 1.0}
 
+# Allowed risk-context values — shared by the HTTP API and the CLI so both
+# validate against the same enums the weights above understand.
+VALID_ENVIRONMENTS = set(_ENV_WEIGHT)
+VALID_DATA_CLASSIFICATIONS = set(_DATA_CLASS_WEIGHT)
+VALID_EXPOSURES = set(_EXPOSURE_WEIGHT)
+SEVERITY_ORDER = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+
 
 def compute_contextual_score(
     raw_score: Optional[float], severity: str, context: dict
