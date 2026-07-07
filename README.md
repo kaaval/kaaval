@@ -15,6 +15,24 @@ Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings,
 - **Multi-cluster comparison** — register multiple clusters and scan/compare across them.
 - **Kyverno policies** — admission-time counterparts of the RBAC rules in [`policies/kyverno/`](policies/kyverno/README.md), with an honest map of what the upstream policy library already covers and two policies being contributed upstream.
 
+## Screenshots
+
+Every RBAC misconfiguration is ranked by the Contextual Risk Score and expands into a full remediation block — what to do, why it matters *in your context*, the CIS Kubernetes Benchmark v1.12.0 control it maps to, the compliance note, and an audit-trail line:
+
+![RBAC finding with contextual score and full remediation](docs/assets/screenshots/rbac-remediation.png)
+
+The ranked findings list — the same score sorts a CRITICAL `system:masters` binding above expected-but-noisy HIGH grants:
+
+![Ranked RBAC findings](docs/assets/screenshots/rbac-findings.png)
+
+The four risk-context answers that drive the score, set once per cluster:
+
+![Risk context settings](docs/assets/screenshots/risk-context.png)
+
+Dashboard overview:
+
+![Dashboard](docs/assets/screenshots/dashboard.png)
+
 ## Why it's different
 
 Detection tools (Trivy, Prowler, kube-bench) tell you *what's wrong*. SaaS platforms (Wiz, Orca) add business context but keep the scoring model opaque and the price tag five figures. Argus does the contextual scoring in the open, self-hosted, with the formula visible in the code — you can see exactly why a finding ranks where it does.
