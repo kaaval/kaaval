@@ -66,6 +66,11 @@ severity normalization, etc.), I'd be glad to align with it rather than
 invent another format — Argus already plans to ingest PolicyReports rather
 than define its own policy engine.
 
+It's Apache-2.0 and open to contributors — there's a public roadmap and a set
+of scoped good-first-issues (github.com/rrskris/Argus), and `make setup-dev`
+gives you a vulnerable kind cluster to test rules against in a couple of
+minutes.
+
 I'll be at an upcoming Friday meeting. Feedback, criticism, and "this
 already exists, look here" all welcome.
 
