@@ -24,7 +24,7 @@ Hi all,
 
 I'm Vamshi Krishna Santhapuri — infrastructure security architect, 14+ years
 of Linux and Kubernetes operations work. I've been building Argus
-(github.com/rrskris/Argus), an Apache-2.0 cluster security scanner, and I'd
+(github.com/argus-k8s/Argus), an Apache-2.0 cluster security scanner, and I'd
 rather grow it with this group's visibility than in isolation.
 
 The problem Argus works on is not detection — kube-bench, Trivy, Kubescape
@@ -67,7 +67,7 @@ invent another format — Argus already plans to ingest PolicyReports rather
 than define its own policy engine.
 
 It's Apache-2.0 and open to contributors — there's a public roadmap and a set
-of scoped good-first-issues (github.com/rrskris/Argus), and `make setup-dev`
+of scoped good-first-issues (github.com/argus-k8s/Argus), and `make setup-dev`
 gives you a vulnerable kind cluster to test rules against in a couple of
 minutes.
 
@@ -75,14 +75,14 @@ I'll be at an upcoming Friday meeting. Feedback, criticism, and "this
 already exists, look here" all welcome.
 
 Vamshi
-github.com/rrskris/Argus | linuxcent.com
+github.com/argus-k8s/Argus | linuxcent.com
 
 ---
 
 ## Short version (Slack)
 
 Hi all — Vamshi, infra security architect, 14y Linux/K8s ops. Building Argus
-(github.com/rrskris/Argus, Apache-2.0): cluster CVE + RBAC scanning where
+(github.com/argus-k8s/Argus, Apache-2.0): cluster CVE + RBAC scanning where
 every finding gets an explainable contextual risk score (env × data class ×
 compliance × exposure) and a remediation object with CIS v1.12.0 mappings —
 aimed at the "every scanner ranks by flat severity" problem. Building the

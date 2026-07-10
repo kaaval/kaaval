@@ -6,7 +6,7 @@ Argus is a security tool, so we take issues in Argus itself seriously.
 
 **Do not open a public issue for a security vulnerability.** Instead, use
 GitHub's private [security advisory
-reporting](https://github.com/rrskris/Argus/security/advisories/new), or email
+reporting](https://github.com/argus-k8s/Argus/security/advisories/new), or email
 the maintainer at rrskris@gmail.com with:
 
 - a description of the issue and its impact,

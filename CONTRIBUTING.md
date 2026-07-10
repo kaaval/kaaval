@@ -81,8 +81,8 @@ for the worked design.
 ## Workflow
 
 1. Open (or comment on) an issue first for anything non-trivial, so we don't
-   duplicate work. Look for [`good first issue`](https://github.com/rrskris/Argus/labels/good%20first%20issue)
-   and [`help wanted`](https://github.com/rrskris/Argus/labels/help%20wanted).
+   duplicate work. Look for [`good first issue`](https://github.com/argus-k8s/Argus/labels/good%20first%20issue)
+   and [`help wanted`](https://github.com/argus-k8s/Argus/labels/help%20wanted).
 2. Branch off `main`. Keep PRs focused — one rule, one source, one fix.
 3. `make test` passes; add coverage for new behavior.
 4. Conventional commit messages (`feat:`, `fix:`, `docs:`, `chore:`) — see the

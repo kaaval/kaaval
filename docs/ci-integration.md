@@ -32,14 +32,15 @@ python -m app.cli scan rbac --manifests ./k8s/ \
 python -m app.cli scan rbac --kubeconfig ./ci-kubeconfig --fail-on-severity HIGH
 ```
 
-Or via the container image (the control-plane image includes the CLI):
+Or via the published container image (`ghcr.io/argus-k8s/argus` — no build, includes the CLI):
 
 ```bash
-docker build -t argus-control-plane control-plane/
 docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/argus.yaml:/scan/argus.yaml" \
-    argus-control-plane \
+    ghcr.io/argus-k8s/argus \
     python -m app.cli scan rbac --manifests /scan --context-file /scan/argus.yaml --fail-on-score 20
 ```
+
+Tags: `latest` (newest release), `vX.Y.Z` (pinned release), `edge` (tip of main).
 
 ### Flags
 
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: rrskris/Argus/.github/actions/argus-scan@main
+      - uses: argus-k8s/Argus/.github/actions/argus-scan@main
         with:
           manifests: k8s/
           context-file: k8s/argus.yaml
@@ -112,7 +113,7 @@ kubeconfig from a secret first:
 
 ```yaml
       - run: echo "${{ secrets.CI_KUBECONFIG }}" > ci-kubeconfig
-      - uses: rrskris/Argus/.github/actions/argus-scan@main
+      - uses: argus-k8s/Argus/.github/actions/argus-scan@main
         with:
           kubeconfig: ci-kubeconfig
           context-file: argus.yaml
@@ -126,7 +127,7 @@ argus-rbac-scan:
   stage: test
   image: python:3.12-slim
   script:
-    - git clone --depth 1 https://github.com/rrskris/Argus /argus
+    - git clone --depth 1 https://github.com/argus-k8s/Argus /argus
     - pip install -q -r /argus/control-plane/requirements.txt
     - cd /argus/control-plane
     - python -m app.cli scan rbac
@@ -144,7 +145,7 @@ argus-rbac-scan:
 stage('Argus RBAC scan') {
     steps {
         sh '''
-            git clone --depth 1 https://github.com/rrskris/Argus argus
+            git clone --depth 1 https://github.com/argus-k8s/Argus argus
             pip install -q -r argus/control-plane/requirements.txt
             cd argus/control-plane
             python -m app.cli scan rbac \

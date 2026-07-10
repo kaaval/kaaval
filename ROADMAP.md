@@ -50,5 +50,5 @@ findings** — not raw detection volume. Every item below serves that.
 - Predictive attack-path mapping (compromised-pod → reachable resources), non-destructive
 
 Want something here that isn't tagged yet? Open a
-[rule request or feature issue](https://github.com/rrskris/Argus/issues/new/choose)
+[rule request or feature issue](https://github.com/argus-k8s/Argus/issues/new/choose)
 and we'll scope it together.

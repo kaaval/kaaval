@@ -36,7 +36,7 @@ runs:
     - name: Check out Argus
       uses: actions/checkout@v4
       with:
-        repository: rrskris/Argus
+        repository: argus-k8s/Argus
         ref: ${{ inputs.argus-ref }}
         path: .argus-scan
 

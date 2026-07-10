@@ -55,12 +55,14 @@ Key endpoints (full reference: [docs/api.md](docs/api.md)):
 - `GET|PUT /cve/context` — read/update your tenant's risk context (environment, data classification, compliance scope, exposure) that drives the Contextual Risk Score
 - `POST /rbac/scan`, `GET /rbac/scan/latest`, `GET /rbac/scan/latest/report.pdf` — scan the cluster's Roles/ClusterRoles/bindings for misconfigurations, fetch or export the result
 
-For pipelines there's also a headless CLI needing no server or database at all:
+For pipelines there's also a headless CLI needing no server or database at all — run it straight from the published image (`ghcr.io/argus-k8s/argus`, no build):
 
 ```bash
-cd control-plane
-python -m app.cli scan rbac --manifests ./k8s/ --context-file argus.yaml --fail-on-score 20
+docker run --rm -v "$PWD/k8s:/scan" ghcr.io/argus-k8s/argus \
+    python -m app.cli scan rbac --manifests /scan --fail-on-score 20
 ```
+
+Or from source: `cd control-plane && python -m app.cli scan rbac --manifests ./k8s/ --fail-on-score 20`.
 
 Argus is structured open-core (see `control-plane/app/license.py`): everything above is Community Edition and runs fully self-hosted with no license required. Advanced compliance mapping, SSO, multi-cluster fleet management, and other Enterprise features are gated behind an optional license token — none of that is required to use the scanner.
 
