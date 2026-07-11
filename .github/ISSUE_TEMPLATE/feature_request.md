@@ -7,7 +7,7 @@ labels: ["enhancement"]
 
 ## The problem
 
-What are you trying to do that Argus doesn't support today?
+What are you trying to do that Kaaval doesn't support today?
 
 ## Proposed solution
 
@@ -20,5 +20,5 @@ Other approaches, and why this one.
 
 ## Does it fit the philosophy?
 
-Argus is about contextual, explained, remediable findings — not raw detection
+Kaaval is about contextual, explained, remediable findings — not raw detection
 volume. A sentence on how this serves that helps us prioritize.

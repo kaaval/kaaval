@@ -5,7 +5,7 @@ title: "[rule] "
 labels: ["rule-request", "help wanted"]
 ---
 
-## What should Argus detect?
+## What should Kaaval detect?
 
 Describe the misconfiguration or risk, and the Kubernetes objects it shows up
 in (Role/ClusterRole rule, binding, workload spec, etc.).

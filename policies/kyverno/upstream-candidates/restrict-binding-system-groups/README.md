@@ -14,7 +14,7 @@ kubectl even prints a dedicated warning when you create such a binding —
 and the group is strictly broader in blast radius than `system:masters`
 membership abuse, which the policy already blocks.
 
-Argus's RBAC scanner treats `system:authenticated` as a broad-audience
+Kaaval's RBAC scanner treats `system:authenticated` as a broad-audience
 identity and flags privileged bindings to it as CRITICAL
 (`control-plane/app/rbac_service.py`, `_BROAD_GROUPS`).
 

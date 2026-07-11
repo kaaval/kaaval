@@ -11,12 +11,12 @@ from .models import User, APIKey
 import secrets
 
 SECRET_KEY = os.environ.get(
-    "ARGUS_SECRET_KEY",
-    "argus_super_secret_key_change_me_in_prod",
+    "KAAVAL_SECRET_KEY",
+    "kaaval_super_secret_key_change_me_in_prod",
 )
 REFRESH_SECRET_KEY = os.environ.get(
-    "ARGUS_REFRESH_SECRET_KEY",
-    "argus_refresh_secret_key_change_me_in_prod",
+    "KAAVAL_REFRESH_SECRET_KEY",
+    "kaaval_refresh_secret_key_change_me_in_prod",
 )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15

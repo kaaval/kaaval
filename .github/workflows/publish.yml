@@ -16,9 +16,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: argus
+          - image: kaaval
             context: control-plane
-          - image: argus-dashboard
+          - image: kaaval-dashboard
             context: dashboard
     steps:
       - uses: actions/checkout@v4

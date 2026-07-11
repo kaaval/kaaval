@@ -1,4 +1,4 @@
-# Argus developer Makefile.
+# Kaaval developer Makefile.
 # Goal: git clone -> scanning a deliberately-vulnerable cluster in under 2 minutes.
 #
 # Quick start for a new contributor:
@@ -8,10 +8,10 @@
 #   make scan             # run the RBAC scanner against the testbed (no server needed)
 #   make teardown-dev     # tear it all down
 
-KIND_CLUSTER  ?= argus-dev
-PG_CONTAINER  ?= argus-dev-pg
+KIND_CLUSTER  ?= kaaval-dev
+PG_CONTAINER  ?= kaaval-dev-pg
 PG_PORT       ?= 55432
-DATABASE_URL  ?= postgresql://argus:password@127.0.0.1:$(PG_PORT)/argus_db
+DATABASE_URL  ?= postgresql://kaaval:password@127.0.0.1:$(PG_PORT)/kaaval_db
 FIXTURES      ?= hack/dev/rbac-fixtures.yaml
 VENV          ?= .venv
 PY            := $(VENV)/bin/python
@@ -50,10 +50,10 @@ venv: $(VENV) ## Create the control-plane virtualenv with pinned deps
 .PHONY: db
 db: ## Start a throwaway Postgres (for tests or a local control plane)
 	docker run -d --name $(PG_CONTAINER) \
-		-e POSTGRES_USER=argus -e POSTGRES_PASSWORD=password -e POSTGRES_DB=argus_db \
+		-e POSTGRES_USER=kaaval -e POSTGRES_PASSWORD=password -e POSTGRES_DB=kaaval_db \
 		-p $(PG_PORT):5432 postgres:16-alpine
 	@echo "Waiting for Postgres..."
-	@until docker exec $(PG_CONTAINER) pg_isready -U argus -d argus_db >/dev/null 2>&1; do sleep 1; done
+	@until docker exec $(PG_CONTAINER) pg_isready -U kaaval -d kaaval_db >/dev/null 2>&1; do sleep 1; done
 	@echo "Postgres ready on port $(PG_PORT)."
 
 .PHONY: db-stop

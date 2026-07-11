@@ -1,6 +1,6 @@
 version: "3.9"
 
-# ── Argus — self-hosted deployment ─────────────────────────────────────────────
+# ── Kaaval — self-hosted deployment ─────────────────────────────────────────────
 # Usage:
 #   cp .env.example .env          # fill in your secrets
 #   docker compose up -d
@@ -15,15 +15,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: argus
+      POSTGRES_USER: kaaval
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: argus_db
+      POSTGRES_DB: kaaval_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U argus -d argus_db"]
+      test: ["CMD-SHELL", "pg_isready -U kaaval -d kaaval_db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,11 +38,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://argus:${POSTGRES_PASSWORD:-password}@postgres:5432/argus_db
-      ARGUS_SECRET_KEY: ${ARGUS_SECRET_KEY:-change_me_in_prod}
-      ARGUS_REFRESH_SECRET_KEY: ${ARGUS_REFRESH_SECRET_KEY:-change_me_refresh_in_prod}
-      ARGUS_ADMIN_PASSWORD: ${ARGUS_ADMIN_PASSWORD:-}
-      ARGUS_LICENSE_TOKEN: ${ARGUS_LICENSE_TOKEN:-}
+      DATABASE_URL: postgresql://kaaval:${POSTGRES_PASSWORD:-password}@postgres:5432/kaaval_db
+      KAAVAL_SECRET_KEY: ${KAAVAL_SECRET_KEY:-change_me_in_prod}
+      KAAVAL_REFRESH_SECRET_KEY: ${KAAVAL_REFRESH_SECRET_KEY:-change_me_refresh_in_prod}
+      KAAVAL_ADMIN_PASSWORD: ${KAAVAL_ADMIN_PASSWORD:-}
+      KAAVAL_LICENSE_TOKEN: ${KAAVAL_LICENSE_TOKEN:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-mock}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-mock}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
@@ -50,7 +50,7 @@ services:
     volumes:
       - ../extensions:/app/extensions:ro
       - ../plugins:/app/plugins:ro
-      - audit_logs:/var/log/argus
+      - audit_logs:/var/log/kaaval
     ports:
       - "8000:8000"
     healthcheck:
@@ -73,7 +73,7 @@ services:
       - "3000:3000"
 
   # ── Cloud Scanner (Go, run-to-completion job) ─────────────────────────────────
-  # Not a long-running service — triggered by control-plane via ARGUS_SCANNER_BIN.
+  # Not a long-running service — triggered by control-plane via KAAVAL_SCANNER_BIN.
   # This profile lets you run a one-off scan manually:
   #   docker compose run --rm cloud-scanner --role-arn arn:aws:iam::...
   cloud-scanner:
@@ -82,7 +82,7 @@ services:
       dockerfile: Dockerfile
     profiles: ["scanner"]
     environment:
-      DATABASE_URL: postgresql://argus:${POSTGRES_PASSWORD:-password}@postgres:5432/argus_db
+      DATABASE_URL: postgresql://kaaval:${POSTGRES_PASSWORD:-password}@postgres:5432/kaaval_db
       EXTENSIONS_DIR: /app/extensions/integrations
     volumes:
       - ../extensions:/app/extensions:ro
@@ -96,8 +96,8 @@ services:
     profiles: ["observability"]
     restart: unless-stopped
     environment:
-      CLICKHOUSE_DB: argus
-      CLICKHOUSE_USER: argus
+      CLICKHOUSE_DB: kaaval
+      CLICKHOUSE_USER: kaaval
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-password}
     volumes:

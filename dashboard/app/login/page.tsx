@@ -54,7 +54,7 @@ export default function LoginPage() {
                     <div className="p-3 bg-blue-500/10 rounded-full mb-3">
                         <Shield size={40} className="text-neon-blue" />
                     </div>
-                    <h1 className="text-2xl font-bold text-primary tracking-tight">Welcome to Argus</h1>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Welcome to Kaaval</h1>
                     <p className="text-text-secondary text-sm mt-1">Kubernetes CVE Detection &amp; Reporting</p>
                 </div>
 
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 </form>
 
                 <div className="mt-6 text-center text-xs text-text-secondary">
-                    Argus &bull; v1.0
+                    Kaaval &bull; v1.0
                 </div>
             </div>
         </div>

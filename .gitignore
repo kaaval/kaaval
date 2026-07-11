@@ -16,8 +16,8 @@ audit.log
 
 # Go binaries
 cloud-scanner/scanner
-cloud-scanner/argus-scanner
-agent/argus-agent
+cloud-scanner/kaaval-scanner
+agent/kaaval-agent
 *.exe
 
 # Node / Next.js

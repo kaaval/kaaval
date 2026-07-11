@@ -77,7 +77,7 @@ export default function HomePage() {
                     Welcome{user?.username ? `, ${user.username}` : ""}
                 </h1>
                 <p className="text-gray-500 text-sm mt-1 font-mono">
-                    Argus &mdash; Kubernetes CVE detector &amp; report generator
+                    Kaaval &mdash; Kubernetes CVE detector &amp; report generator
                 </p>
             </div>
 

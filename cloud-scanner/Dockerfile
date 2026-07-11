@@ -7,5 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o scanner ./cmd/scanner
 
 FROM alpine:3.20
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /src/scanner /usr/local/bin/argus-scanner
-ENTRYPOINT ["argus-scanner"]
+COPY --from=builder /src/scanner /usr/local/bin/kaaval-scanner
+ENTRYPOINT ["kaaval-scanner"]

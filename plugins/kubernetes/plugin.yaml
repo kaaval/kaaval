@@ -4,7 +4,7 @@ meta:
   category: infrastructure
   description: >
     Monitor Kubernetes clusters — workload visibility, CVE scanning, RBAC analysis,
-    and runtime network topology via the Argus agent (DaemonSet mode).
+    and runtime network topology via the Kaaval agent (DaemonSet mode).
 
 connector:
   type: agent_module

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 
 	"gopkg.in/yaml.v3"
 )

@@ -53,7 +53,7 @@ allowed values are the ones in [contextual-risk-score.md](contextual-risk-score.
 
 | Method + path | Purpose |
 |---|---|
-| `POST /cve/scan` | Scan the cluster Argus runs in (or reaches via kubeconfig) against all enabled feeds |
+| `POST /cve/scan` | Scan the cluster Kaaval runs in (or reaches via kubeconfig) against all enabled feeds |
 | `GET /cve/scan/latest` | Most recent self-scan result |
 | `GET /cve/scan/latest/report.pdf` | Same scan as a PDF |
 | `GET /cve/summary` | Feed stats + severity breakdown + latest scan |

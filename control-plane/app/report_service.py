@@ -29,11 +29,11 @@ SEVERITY_COLOR = {
 }
 
 _styles = getSampleStyleSheet()
-_title_style = ParagraphStyle("ArgusTitle", parent=_styles["Title"], fontSize=20)
-_h2_style = ParagraphStyle("ArgusH2", parent=_styles["Heading2"], spaceBefore=14)
-_body_style = ParagraphStyle("ArgusBody", parent=_styles["BodyText"], fontSize=9, leading=12)
+_title_style = ParagraphStyle("KaavalTitle", parent=_styles["Title"], fontSize=20)
+_h2_style = ParagraphStyle("KaavalH2", parent=_styles["Heading2"], spaceBefore=14)
+_body_style = ParagraphStyle("KaavalBody", parent=_styles["BodyText"], fontSize=9, leading=12)
 _remediation_style = ParagraphStyle(
-    "ArgusRemediation", parent=_styles["BodyText"], fontSize=9, leading=12,
+    "KaavalRemediation", parent=_styles["BodyText"], fontSize=9, leading=12,
     textColor=colors.HexColor("#065f46"),
 )
 
@@ -92,7 +92,7 @@ def build_cve_scan_pdf(scan: dict) -> bytes:
     story = []
 
     # ── Cover ──────────────────────────────────────────────────────────────────
-    story.append(Paragraph("Argus CVE Scan Report", _title_style))
+    story.append(Paragraph("Kaaval CVE Scan Report", _title_style))
     story.append(Spacer(1, 6))
     story.append(Paragraph(f"Cluster version: <b>{scan.get('cluster_version', 'unknown')}</b>", _body_style))
     story.append(Paragraph(f"Scanned at: {scan.get('scanned_at', 'unknown')}", _body_style))
@@ -156,7 +156,7 @@ def build_rbac_scan_pdf(scan: dict) -> bytes:
     story = []
 
     # ── Cover ──────────────────────────────────────────────────────────────────
-    story.append(Paragraph("Argus RBAC Scan Report", _title_style))
+    story.append(Paragraph("Kaaval RBAC Scan Report", _title_style))
     story.append(Spacer(1, 6))
     story.append(Paragraph(f"Scanned at: {scan.get('scanned_at', 'unknown')}", _body_style))
     story.append(Paragraph(

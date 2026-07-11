@@ -12,7 +12,7 @@ connector:
     role_arn:
       type: string
       required: true
-      description: IAM Role ARN to assume (arn:aws:iam::123456789012:role/ArgusScanner)
+      description: IAM Role ARN to assume (arn:aws:iam::123456789012:role/KaavalScanner)
     external_id:
       type: string
       required: false

@@ -1,8 +1,10 @@
-# Argus
+# Kaaval
 
 **A self-hosted Kubernetes security scanner that tells you what a finding actually means for *your* cluster — not just a list of IDs to look up yourself.**
 
-Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings, good luck prioritizing them. Argus is built around a different principle — a finding is only useful once it's tied to *your* environment and comes with a concrete next step. Every finding, whether it's a CVE or an RBAC misconfiguration, is run through the same **Contextual Risk Score** engine and ranked by what actually matters to you, not a flat severity sort.
+> *Kaaval (కావల్) means "guard duty" — the act of keeping watch. Formerly known as Argus; renamed to avoid colliding with the long-running [openargus](https://openargus.org) network audit project.*
+
+Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings, good luck prioritizing them. Kaaval is built around a different principle — a finding is only useful once it's tied to *your* environment and comes with a concrete next step. Every finding, whether it's a CVE or an RBAC misconfiguration, is run through the same **Contextual Risk Score** engine and ranked by what actually matters to you, not a flat severity sort.
 
 ## What it does today
 
@@ -35,7 +37,7 @@ Dashboard overview:
 
 ## Why it's different
 
-Detection tools (Trivy, Prowler, kube-bench) tell you *what's wrong*. SaaS platforms (Wiz, Orca) add business context but keep the scoring model opaque and the price tag five figures. Argus does the contextual scoring in the open, self-hosted, with the formula visible in the code — you can see exactly why a finding ranks where it does.
+Detection tools (Trivy, Prowler, kube-bench) tell you *what's wrong*. SaaS platforms (Wiz, Orca) add business context but keep the scoring model opaque and the price tag five figures. Kaaval does the contextual scoring in the open, self-hosted, with the formula visible in the code — you can see exactly why a finding ranks where it does.
 
 ## Architecture
 
@@ -55,28 +57,28 @@ Key endpoints (full reference: [docs/api.md](docs/api.md)):
 - `GET|PUT /cve/context` — read/update your tenant's risk context (environment, data classification, compliance scope, exposure) that drives the Contextual Risk Score
 - `POST /rbac/scan`, `GET /rbac/scan/latest`, `GET /rbac/scan/latest/report.pdf` — scan the cluster's Roles/ClusterRoles/bindings for misconfigurations, fetch or export the result
 
-For pipelines there's also a headless CLI needing no server or database at all — run it straight from the published image (`ghcr.io/argus-k8s/argus`, no build):
+For pipelines there's also a headless CLI needing no server or database at all — run it straight from the published image (`ghcr.io/kaaval/kaaval`, no build):
 
 ```bash
-docker run --rm -v "$PWD/k8s:/scan" ghcr.io/argus-k8s/argus \
+docker run --rm -v "$PWD/k8s:/scan" ghcr.io/kaaval/kaaval \
     python -m app.cli scan rbac --manifests /scan --fail-on-score 20
 ```
 
 Or from source: `cd control-plane && python -m app.cli scan rbac --manifests ./k8s/ --fail-on-score 20`.
 
-Argus is structured open-core (see `control-plane/app/license.py`): everything above is Community Edition and runs fully self-hosted with no license required. Advanced compliance mapping, SSO, multi-cluster fleet management, and other Enterprise features are gated behind an optional license token — none of that is required to use the scanner.
+Kaaval is structured open-core (see `control-plane/app/license.py`): everything above is Community Edition and runs fully self-hosted with no license required. Advanced compliance mapping, SSO, multi-cluster fleet management, and other Enterprise features are gated behind an optional license token — none of that is required to use the scanner.
 
 ## Quickstart
 
 ```bash
 cp deploy/.env.example deploy/.env
-# fill in POSTGRES_PASSWORD, ARGUS_SECRET_KEY, ARGUS_REFRESH_SECRET_KEY
+# fill in POSTGRES_PASSWORD, KAAVAL_SECRET_KEY, KAAVAL_REFRESH_SECRET_KEY
 # (generate secrets with: openssl rand -hex 32)
 
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
-The admin user is seeded automatically on first start. If `ARGUS_ADMIN_PASSWORD` is left blank in `.env`, a password is generated and printed once to the control-plane container logs:
+The admin user is seeded automatically on first start. If `KAAVAL_ADMIN_PASSWORD` is left blank in `.env`, a password is generated and printed once to the control-plane container logs:
 
 ```bash
 docker compose -f deploy/docker-compose.yml logs control-plane | grep "Admin created"
@@ -90,7 +92,7 @@ Dashboard: http://localhost:3000. API: http://localhost:8000.
 # control-plane
 cd control-plane
 pip install -r requirements.txt
-ARGUS_ADMIN_PASSWORD=test-admin-password pytest tests/
+KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/
 
 # dashboard
 cd dashboard
