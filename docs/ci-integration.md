@@ -37,10 +37,14 @@ Or via the published container image (`ghcr.io/kaaval/kaaval` — no build, incl
 ```bash
 docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/kaaval.yaml:/scan/kaaval.yaml" \
     ghcr.io/kaaval/kaaval \
-    python -m app.cli scan rbac --manifests /scan --context-file /scan/kaaval.yaml --fail-on-score 20
+    scan rbac --manifests /scan --context-file /scan/kaaval.yaml --fail-on-score 20
 ```
 
 Tags: `latest` (newest release), `vX.Y.Z` (pinned release), `edge` (tip of main).
+
+> **SELinux hosts (Fedora, RHEL, CentOS Stream):** add `:z` to each volume flag
+> (`-v "$PWD/k8s:/scan:z"`) or the container is denied read access to the mount
+> and the scan fails with a `PermissionError`.
 
 ### Flags
 
