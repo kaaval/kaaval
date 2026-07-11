@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /control-plane
+    schedule:
+      interval: weekly
+    groups:
+      python-patch:
+        update-types: ["patch"]
+
+  - package-ecosystem: npm
+    directory: /dashboard
+    schedule:
+      interval: weekly
+    groups:
+      npm-patch:
+        update-types: ["patch"]
+
+  - package-ecosystem: docker
+    directories:
+      - /control-plane
+      - /dashboard
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

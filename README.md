@@ -1,5 +1,11 @@
 # Kaaval
 
+[![CI](https://github.com/kaaval/kaaval/actions/workflows/ci.yml/badge.svg)](https://github.com/kaaval/kaaval/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/kaaval/kaaval/badge)](https://scorecard.dev/viewer/?uri=github.com/kaaval/kaaval)
+[![Release](https://img.shields.io/github/v/release/kaaval/kaaval?include_prereleases)](https://github.com/kaaval/kaaval/releases)
+[![License](https://img.shields.io/github/license/kaaval/kaaval)](LICENSE)
+[![Good first issues](https://img.shields.io/github/issues/kaaval/kaaval/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/kaaval/kaaval/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
 **A self-hosted Kubernetes security scanner that tells you what a finding actually means for *your* cluster — not just a list of IDs to look up yourself.**
 
 > *Kaaval (కావల్) means "guard duty" — the act of keeping watch. Formerly known as Argus; renamed to avoid colliding with the long-running [openargus](https://openargus.org) network audit project.*
