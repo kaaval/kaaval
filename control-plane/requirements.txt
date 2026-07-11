@@ -5,7 +5,7 @@ psycopg2-binary
 pydantic[email]
 python-jose[cryptography]
 passlib
-bcrypt==3.2.2
+bcrypt==5.0.0
 python-multipart
 httpx
 kubernetes
