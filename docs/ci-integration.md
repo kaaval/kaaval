@@ -225,4 +225,5 @@ SRE alerting on *new* findings only, and a Helm chart for one-line install.
   if: always()
   with:
     sarif_file: results.sarif
+  
 \`\`\`

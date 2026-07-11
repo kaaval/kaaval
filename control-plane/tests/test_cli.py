@@ -1,5 +1,5 @@
 """
-Unit tests for the headless CLI — manifest→graph parsing, context loading,
+Unit tests for the headless CLI -- manifest to graph parsing, context loading,
 and gating logic. Pure functions plus main() with --manifests, so no cluster,
 DB, or network is needed.
 """
@@ -194,6 +194,8 @@ def test_context_file_threshold_applies_without_flag(risky_dir, tmp_path):
     ctx_file.write_text("environment: production\nfail_on_score: 5\n")
 
     assert main(["scan", "rbac", "--manifests", str(risky_dir), "--context-file", str(ctx_file)]) == 1
+
+
 def test_sarif_output_is_valid_shape(risky_dir, capsys):
     code = main(["scan", "rbac", "--manifests", str(risky_dir), "--output", "sarif"])
 
