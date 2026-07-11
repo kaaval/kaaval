@@ -10,6 +10,8 @@
 
 > *Kaaval (కావల్) means "guard duty" — the act of keeping watch. Formerly known as Argus; renamed to avoid colliding with the long-running [openargus](https://openargus.org) network audit project.*
 
+![Kaaval scanning deliberately vulnerable RBAC and ranking findings by contextual risk](docs/assets/kaaval-scan.gif)
+
 Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings, good luck prioritizing them. Kaaval is built around a different principle — a finding is only useful once it's tied to *your* environment and comes with a concrete next step. Every finding, whether it's a CVE or an RBAC misconfiguration, is run through the same **Contextual Risk Score** engine and ranked by what actually matters to you, not a flat severity sort.
 
 ## What it does today
@@ -63,18 +65,41 @@ Key endpoints (full reference: [docs/api.md](docs/api.md)):
 - `GET|PUT /cve/context` — read/update your tenant's risk context (environment, data classification, compliance scope, exposure) that drives the Contextual Risk Score
 - `POST /rbac/scan`, `GET /rbac/scan/latest`, `GET /rbac/scan/latest/report.pdf` — scan the cluster's Roles/ClusterRoles/bindings for misconfigurations, fetch or export the result
 
-For pipelines there's also a headless CLI needing no server or database at all — run it straight from the published image (`ghcr.io/kaaval/kaaval`, no build):
-
-```bash
-docker run --rm -v "$PWD/k8s:/scan" ghcr.io/kaaval/kaaval \
-    python -m app.cli scan rbac --manifests /scan --fail-on-score 20
-```
-
-Or from source: `cd control-plane && python -m app.cli scan rbac --manifests ./k8s/ --fail-on-score 20`.
-
 Kaaval is fully open source under Apache-2.0 — no open-core split, no feature gates, no license tokens. Everything the project ships runs self-hosted, and it will stay that way: the project is being built toward CNCF vendor-neutrality standards.
 
 ## Quickstart
+
+### 1. See it work in under two minutes (throwaway cluster)
+
+You need Docker, [`kind`](https://kind.sigs.k8s.io/), `kubectl`, and Python 3.12:
+
+```bash
+git clone https://github.com/kaaval/kaaval && cd kaaval
+make setup-dev        # kind cluster preloaded with deliberately-vulnerable RBAC
+make scan             # findings ranked by contextual risk, remediation included
+make teardown-dev     # clean up
+```
+
+No cluster handy? `make scan-manifests` scans the fixture YAML directly — no
+Kubernetes at all.
+
+### 2. Scan your own manifests in CI (no server, no database)
+
+Straight from the published image, no build:
+
+```bash
+docker run --rm -v "$PWD/k8s:/scan" ghcr.io/kaaval/kaaval \
+    scan rbac --manifests /scan --fail-on-score 20
+```
+
+> On SELinux-enforcing hosts (Fedora, RHEL), add `:z` to the volume flag
+> (`-v "$PWD/k8s:/scan:z"`) or the container can't read the mount.
+
+There's also a [GitHub Action](docs/ci-integration.md) plus GitLab/Jenkins/Argo CD
+recipes, and gating on the *contextual* score means the same finding can block a
+production/PCI pipeline yet pass in dev.
+
+### 3. Full stack with the dashboard
 
 ```bash
 cp deploy/.env.example deploy/.env
@@ -91,6 +116,20 @@ docker compose -f deploy/docker-compose.yml logs control-plane | grep "Admin cre
 ```
 
 Dashboard: http://localhost:3000. API: http://localhost:8000.
+
+## Status
+
+| Component | State |
+|---|---|
+| `control-plane/` — CVE + RBAC scanning, contextual scoring, remediation, PDF, CLI | ✅ shipped, tested, in the published image |
+| `dashboard/` — Next.js UI | ✅ shipped |
+| `policies/kyverno/` — admission-time counterparts | ✅ shipped |
+| `deploy/helm/` | 🚧 planned ([#8](https://github.com/kaaval/kaaval/issues/8)) |
+| `agent/`, `cloud-scanner/` — Go engine | 📐 reserved skeletons, not functional (see their READMEs) |
+| `plugins/` — integration descriptors | 📐 reserved, no runtime |
+
+Where this is going: [ROADMAP.md](ROADMAP.md). **Using Kaaval?** Add yourself to
+[ADOPTERS.md](ADOPTERS.md) — adopter entries directly support the project's CNCF path.
 
 ## Development
 
