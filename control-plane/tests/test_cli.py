@@ -206,7 +206,7 @@ def test_sarif_output_is_valid_shape(risky_dir, capsys):
     assert len(sarif["runs"]) == 1
 
     run = sarif["runs"][0]
-    assert run["tool"]["driver"]["name"] == "Argus"
+    assert run["tool"]["driver"]["name"] == "Kaaval"
     rules = run["tool"]["driver"]["rules"]
     assert rules, "expected at least one rule"
     assert all("id" in r and "shortDescription" in r for r in rules)
