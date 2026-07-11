@@ -1,6 +1,6 @@
 # The Contextual Risk Score
 
-Every Argus finding — CVE or RBAC — is ranked by one formula, implemented in
+Every Kaaval finding — CVE or RBAC — is ranked by one formula, implemented in
 `control-plane/app/scoring.py`:
 
 ```
@@ -75,7 +75,7 @@ Three ways, same four fields:
 2. **API** — `PUT /cve/context` (see [api.md](api.md)); the context is
    tenant-scoped and shared by CVE and RBAC scans. Defaults are seeded on
    first access: production / internal / internal, no compliance scope.
-3. **CLI / CI** — a committed `argus.yaml` per environment overlay
+3. **CLI / CI** — a committed `kaaval.yaml` per environment overlay
    ("risk context as code", see [ci-integration.md](ci-integration.md)).
 
 ## Design choices, stated plainly
@@ -89,6 +89,6 @@ Three ways, same four fields:
 - **Score explains ranking; severity stays untouched** — `severity` and
   `cvss_score` fields are unchanged on every finding, so anything built on
   severity keeps working, and the CVSS number stays comparable across tools.
-- **Context is declared, not inferred** — Argus does not guess your data
+- **Context is declared, not inferred** — Kaaval does not guess your data
   classification. Auto-detection (e.g. from namespace labels) is on the
   roadmap; guessing wrong silently would be worse than asking.

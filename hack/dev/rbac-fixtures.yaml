@@ -1,4 +1,4 @@
-# Planted RBAC misconfigurations for Argus e2e verification.
+# Planted RBAC misconfigurations for Kaaval e2e verification.
 # Expected findings per rule:
 #   1. wide-open           → wildcard_permissions (+ cluster_admin_binding via default SA)
 #   2. escalator           → privilege_escalation_verbs

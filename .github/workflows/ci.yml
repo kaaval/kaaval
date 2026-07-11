@@ -13,13 +13,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: argus
+          POSTGRES_USER: kaaval
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: argus_db
+          POSTGRES_DB: kaaval_db
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U argus -d argus_db"
+          --health-cmd "pg_isready -U kaaval -d kaaval_db"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -38,10 +38,10 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://argus:password@localhost:5432/argus_db
-          ARGUS_ADMIN_PASSWORD: test-admin-password
-          ARGUS_SECRET_KEY: ci_secret_key
-          ARGUS_REFRESH_SECRET_KEY: ci_refresh_secret_key
+          DATABASE_URL: postgresql://kaaval:password@localhost:5432/kaaval_db
+          KAAVAL_ADMIN_PASSWORD: test-admin-password
+          KAAVAL_SECRET_KEY: ci_secret_key
+          KAAVAL_REFRESH_SECRET_KEY: ci_refresh_secret_key
         run: pytest tests/
 
   dashboard:

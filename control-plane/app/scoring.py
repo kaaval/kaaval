@@ -1,5 +1,5 @@
 """
-Contextual Risk Score engine — shared across all Argus finding types
+Contextual Risk Score engine — shared across all Kaaval finding types
 (CVE, RBAC, and whatever comes next).
 
 Score = base severity x environment weight x data classification weight x

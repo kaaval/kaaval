@@ -4,7 +4,7 @@ package aws
 import (
 	"context"
 
-	"argus/cloud-scanner/internal/providers"
+	"kaaval/cloud-scanner/internal/providers"
 )
 
 // Provider wraps the AWS SDK clients and implements providers.CloudProvider.

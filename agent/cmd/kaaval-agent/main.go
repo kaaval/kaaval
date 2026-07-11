@@ -6,24 +6,24 @@ import (
 	"os"
 	"time"
 
-	"argus/agent/internal/collector"
-	"argus/agent/internal/transport"
+	"kaaval/agent/internal/collector"
+	"kaaval/agent/internal/transport"
 )
 
 func main() {
-	serverURL := flag.String("server", "http://localhost:8000", "Argus Control Plane URL")
+	serverURL := flag.String("server", "http://localhost:8000", "Kaaval Control Plane URL")
 	token := flag.String("token", "", "Enrollment token (Tenant ID)")
 	interval := flag.Int("interval", 30, "Heartbeat interval in seconds")
 	flag.Parse()
 
 	if *token == "" {
-		*token = os.Getenv("ARGUS_TOKEN")
+		*token = os.Getenv("KAAVAL_TOKEN")
 	}
 	if *token == "" {
-		log.Fatal("Enrollment token required. Set ARGUS_TOKEN env var or use -token flag.")
+		log.Fatal("Enrollment token required. Set KAAVAL_TOKEN env var or use -token flag.")
 	}
 
-	log.Printf("Starting Argus Agent — server: %s", *serverURL)
+	log.Printf("Starting Kaaval Agent — server: %s", *serverURL)
 
 	client := transport.New(*serverURL)
 

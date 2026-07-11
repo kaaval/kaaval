@@ -9,10 +9,10 @@ export default function DocsPage() {
             <div className="mb-8 border-b border-border-color pb-6">
                 <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
                     <Book className="text-neon-blue" size={32} />
-                    Argus Documentation
+                    Kaaval Documentation
                 </h1>
                 <p className="text-text-secondary text-lg">
-                    Official standards and guides for extending the Argus Security Visibility Platform.
+                    Official standards and guides for extending the Kaaval Security Visibility Platform.
                 </p>
             </div>
 
@@ -30,7 +30,7 @@ export default function DocsPage() {
                         <div>
                             <h3 className="text-xl font-semibold text-white mb-3">1. Purpose of Integrations</h3>
                             <p className="mb-4">
-                                Integrations in Argus serve as modular &quot;Compliance Packs&quot; or &quot;Security Frameworks&quot;. They allow users to enable specific sets of security checks (e.g., CIS AWS, PCI-DSS, HIPAA) or connect third-party data sources (e.g., Wazuh, CrowdStrike, Qualys) without bloating the core engine with irrelevant logic.
+                                Integrations in Kaaval serve as modular &quot;Compliance Packs&quot; or &quot;Security Frameworks&quot;. They allow users to enable specific sets of security checks (e.g., CIS AWS, PCI-DSS, HIPAA) or connect third-party data sources (e.g., Wazuh, CrowdStrike, Qualys) without bloating the core engine with irrelevant logic.
                             </p>
                         </div>
 

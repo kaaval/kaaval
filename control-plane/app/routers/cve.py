@@ -272,7 +272,7 @@ def get_latest_scan_report_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=argus-cve-report.pdf"},
+        headers={"Content-Disposition": "attachment; filename=kaaval-cve-report.pdf"},
     )
 
 

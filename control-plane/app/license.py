@@ -59,8 +59,8 @@ CE_FEATURES = {
     "widget_dashboard",
 }
 
-_LICENSE_PUBLIC_KEY = os.getenv("ARGUS_LICENSE_PUBKEY", "")
-_LICENSE_TOKEN_ENV = "ARGUS_LICENSE_TOKEN"
+_LICENSE_PUBLIC_KEY = os.getenv("KAAVAL_LICENSE_PUBKEY", "")
+_LICENSE_TOKEN_ENV = "KAAVAL_LICENSE_TOKEN"
 
 
 class LicenseInfo:
@@ -94,7 +94,7 @@ def _load_license() -> LicenseInfo:
     token = os.getenv(_LICENSE_TOKEN_ENV, "").strip()
 
     if not token:
-        license_file = os.getenv("ARGUS_LICENSE_FILE", "/etc/argus/license.jwt")
+        license_file = os.getenv("KAAVAL_LICENSE_FILE", "/etc/kaaval/license.jwt")
         try:
             with open(license_file) as f:
                 token = f.read().strip()
@@ -108,7 +108,7 @@ def _load_license() -> LicenseInfo:
     try:
         from jose import jwt, JWTError
         if not _LICENSE_PUBLIC_KEY:
-            logger.warning("License token present but ARGUS_LICENSE_PUBKEY not set — skipping signature check (dev mode)")
+            logger.warning("License token present but KAAVAL_LICENSE_PUBKEY not set — skipping signature check (dev mode)")
             payload = jwt.decode(token, "dev-mode", algorithms=["HS256", "RS256", "ES256"], options={"verify_signature": False})
         else:
             payload = jwt.decode(token, _LICENSE_PUBLIC_KEY, algorithms=["RS256", "ES256"])
@@ -151,7 +151,7 @@ class LicenseGate:
                         "feature_name": friendly,
                         "message": (
                             f"'{friendly}' requires an Enterprise Edition license. "
-                            "Set ARGUS_LICENSE_TOKEN to enable."
+                            "Set KAAVAL_LICENSE_TOKEN to enable."
                         ),
                     },
                 )

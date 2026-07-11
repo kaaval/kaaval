@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 
 	_ "github.com/lib/pq"
 )

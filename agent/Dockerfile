@@ -3,9 +3,9 @@ WORKDIR /src
 COPY go.mod ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o argus-agent ./cmd/argus-agent
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o kaaval-agent ./cmd/kaaval-agent
 
 FROM alpine:3.20
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /src/argus-agent /usr/local/bin/argus-agent
-ENTRYPOINT ["argus-agent"]
+COPY --from=builder /src/kaaval-agent /usr/local/bin/kaaval-agent
+ENTRYPOINT ["kaaval-agent"]

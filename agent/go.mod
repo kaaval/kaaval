@@ -1,4 +1,4 @@
-module argus/agent
+module kaaval/agent
 
 go 1.25.0
 

@@ -3,7 +3,7 @@ package compliance
 import (
 	"fmt"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 )
 
 // Severity levels

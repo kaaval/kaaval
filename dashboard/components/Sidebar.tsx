@@ -21,7 +21,7 @@ export default function Sidebar() {
             <div className="p-6 border-b border-gray-800/50">
                 <Link href="/" className="block hover:opacity-80 transition-opacity">
                     <h1 className="text-2xl font-bold text-neon-blue tracking-tighter drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]">
-                        ARGUS
+                        KAAVAL
                     </h1>
                     <p className="text-[10px] text-neon-blue/60 mt-1 font-mono tracking-widest uppercase">
                         Security Visibility

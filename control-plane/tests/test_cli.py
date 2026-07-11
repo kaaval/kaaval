@@ -141,7 +141,7 @@ metadata:
 
 
 def test_context_file_loading_and_validation(tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text(
         "environment: dev\ndata_classification: public\n"
         "compliance_scope: []\nexposure: internal\nfail_on_score: 12\n"
@@ -154,7 +154,7 @@ def test_context_file_loading_and_validation(tmp_path):
 
 
 def test_invalid_context_value_is_a_usage_error(tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text("environment: prod\n")  # not a valid enum value
 
     with pytest.raises(SystemExit) as exc:
@@ -190,7 +190,7 @@ def test_no_gate_flags_means_exit_zero_even_with_findings(risky_dir):
 
 
 def test_context_file_threshold_applies_without_flag(risky_dir, tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text("environment: production\nfail_on_score: 5\n")
 
     assert main(["scan", "rbac", "--manifests", str(risky_dir), "--context-file", str(ctx_file)]) == 1

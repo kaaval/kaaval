@@ -2,7 +2,7 @@
 
 ## Our pledge
 
-We want Argus to be a welcoming, harassment-free project for everyone,
+We want Kaaval to be a welcoming, harassment-free project for everyone,
 regardless of experience level, background, or identity.
 
 ## Standards

@@ -5,15 +5,15 @@
 
 ## Why
 
-Argus's differentiation is not the detection engine — it's the layer on top:
+Kaaval's differentiation is not the detection engine — it's the layer on top:
 the Contextual Risk Score and the per-finding remediation object (action /
 why-it-matters / benchmark refs / compliance / audit note). Trivy and Grype
 are excellent, ubiquitous image scanners; competing with them on CVE
-*detection* would be feature-parity chasing. Letting Argus *ingest* their
+*detection* would be feature-parity chasing. Letting Kaaval *ingest* their
 output and score it turns them from competitors into feeds — the same
 pattern already planned for Kyverno PolicyReports.
 
-The native CVE scanner stays. Its zero-extra-tooling property (point Argus at
+The native CVE scanner stays. Its zero-extra-tooling property (point Kaaval at
 a cluster, get findings — no scanner install, no pipeline change) is a real
 adoption differentiator, especially for the CE self-scan path. Ingestion is
 strictly additive.
@@ -90,7 +90,7 @@ GET  /ingest/scans/latest
 - Size guard: reject bodies > a configured limit (env var, default 20 MB);
   Trivy reports for large images are big.
 
-CLI follow-up (work-stream E, later phase): `argus ingest trivy report.json
+CLI follow-up (work-stream E, later phase): `kaaval ingest trivy report.json
 --fail-on-score N` gates a pipeline on *contextually scored* image findings —
 Trivy's own `--severity HIGH` gate can't know the finding lands in a
 production/PCI cluster.

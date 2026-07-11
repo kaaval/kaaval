@@ -1,6 +1,6 @@
 # Roadmap
 
-Where Argus is headed. This is direction, not a dated commitment — and it's
+Where Kaaval is headed. This is direction, not a dated commitment — and it's
 where help is most welcome. Items tagged **[good first issue]** or **[help
 wanted]** have (or will have) a matching labeled issue; comment there before
 starting so we don't duplicate work.
@@ -50,5 +50,5 @@ findings** — not raw detection volume. Every item below serves that.
 - Predictive attack-path mapping (compromised-pod → reachable resources), non-destructive
 
 Want something here that isn't tagged yet? Open a
-[rule request or feature issue](https://github.com/argus-k8s/Argus/issues/new/choose)
+[rule request or feature issue](https://github.com/kaaval/kaaval/issues/new/choose)
 and we'll scope it together.

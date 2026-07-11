@@ -1,5 +1,5 @@
 """
-Shared remediation builder — turns any Argus finding (CVE or RBAC) into the
+Shared remediation builder — turns any Kaaval finding (CVE or RBAC) into the
 explainable "what to do + why it matters + what it maps to" output that is
 the product's actual differentiator. Lives next to scoring.py because it is
 the same idea applied to the other half of the finding: scoring.py explains

@@ -4,18 +4,18 @@ Smoke test for the v1 detector flow: admin bootstrap -> login -> self-scan.
 Requires a reachable Postgres instance (DATABASE_URL, defaults to the same
 local docker-compose database as the app itself). Run from control-plane/:
 
-    ARGUS_ADMIN_PASSWORD=test-admin-password pytest tests/test_smoke.py
+    KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/test_smoke.py
 """
 
 import os
 
-os.environ.setdefault("ARGUS_ADMIN_PASSWORD", "test-admin-password")
+os.environ.setdefault("KAAVAL_ADMIN_PASSWORD", "test-admin-password")
 
 from fastapi.testclient import TestClient
 
 from app.main import app
 
-ADMIN_PASSWORD = os.environ["ARGUS_ADMIN_PASSWORD"]
+ADMIN_PASSWORD = os.environ["KAAVAL_ADMIN_PASSWORD"]
 
 
 def test_login_and_self_scan():

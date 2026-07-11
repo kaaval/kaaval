@@ -17,7 +17,7 @@ from .routers import cve, rbac
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Argus Control Plane", version="1.0.0")
+app = FastAPI(title="Kaaval Control Plane", version="1.0.0")
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 ALLOWED_ORIGINS = os.getenv(
@@ -67,7 +67,7 @@ def seed_admin_user(db: Session) -> dict:
     user = db.query(models.User).filter(models.User.username == "admin").first()
     if user:
         return {"message": "Admin already exists"}
-    default_password = os.getenv("ARGUS_ADMIN_PASSWORD", secrets.token_urlsafe(12))
+    default_password = os.getenv("KAAVAL_ADMIN_PASSWORD", secrets.token_urlsafe(12))
     tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
     db.add(models.User(
         id=uuid.uuid4(),
@@ -78,8 +78,8 @@ def seed_admin_user(db: Session) -> dict:
     ))
     db.commit()
     # Only print the password if we generated it (not from env)
-    if not os.getenv("ARGUS_ADMIN_PASSWORD"):
-        print(f"\n[Argus] Admin created — password: {default_password}\n")
+    if not os.getenv("KAAVAL_ADMIN_PASSWORD"):
+        print(f"\n[Kaaval] Admin created — password: {default_password}\n")
         return {"message": "Admin created", "password": default_password}
     return {"message": "Admin created"}
 
@@ -150,7 +150,7 @@ async def shutdown_event():
 
 @app.get("/")
 def health_check():
-    return {"status": "ok", "service": "Argus Control Plane", "version": "1.0.0"}
+    return {"status": "ok", "service": "Kaaval Control Plane", "version": "1.0.0"}
 
 
 @app.get("/license/status")

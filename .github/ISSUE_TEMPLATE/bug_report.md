@@ -24,7 +24,7 @@ false positive/negative? Include the offending RBAC object or CVE finding.
 
 ## Environment
 
-- Argus version / commit:
+- Kaaval version / commit:
 - How you're running it (docker-compose, CLI, dev): 
 - Kubernetes version (`kubectl version`), if relevant:
 

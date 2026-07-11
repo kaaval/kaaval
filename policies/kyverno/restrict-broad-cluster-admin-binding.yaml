@@ -19,7 +19,7 @@ metadata:
       cluster-admin to every pod in a namespace or every token holder.
       The stock `cluster-admin` ClusterRoleBinding (cluster-admin ->
       system:masters) that ships with every cluster is exempted by name.
-      Mirrors the cluster_admin_binding rule in Argus's RBAC scanner
+      Mirrors the cluster_admin_binding rule in Kaaval's RBAC scanner
       (rbac_service.py).
 spec:
   validationFailureAction: Audit

@@ -90,7 +90,7 @@ export default function RBACPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "argus-rbac-report.pdf";
+        a.download = "kaaval-rbac-report.pdf";
         a.click();
         URL.revokeObjectURL(url);
     };

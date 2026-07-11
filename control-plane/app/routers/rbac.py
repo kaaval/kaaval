@@ -50,5 +50,5 @@ def get_latest_scan_report_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=argus-rbac-report.pdf"},
+        headers={"Content-Disposition": "attachment; filename=kaaval-rbac-report.pdf"},
     )

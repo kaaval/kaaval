@@ -1,6 +1,6 @@
-name: "Argus RBAC Scan"
+name: "Kaaval RBAC Scan"
 description: >-
-  Scan Kubernetes RBAC manifests (shift-left) or a live cluster with Argus and
+  Scan Kubernetes RBAC manifests (shift-left) or a live cluster with Kaaval and
   gate the pipeline on the Contextual Risk Score — context-aware gating instead
   of a flat severity threshold.
 author: "rrskris"
@@ -13,7 +13,7 @@ inputs:
     description: "Path to a kubeconfig file — live-cluster mode (use a read-only CI service account)"
     required: false
   context-file:
-    description: "Path to the argus.yaml risk context (risk context as code)"
+    description: "Path to the kaaval.yaml risk context (risk context as code)"
     required: false
   fail-on-score:
     description: "Fail the job if any finding's contextual score is >= this value"
@@ -25,35 +25,35 @@ inputs:
     description: "Output format: table or json"
     required: false
     default: "table"
-  argus-ref:
-    description: "Git ref of Argus to run"
+  kaaval-ref:
+    description: "Git ref of Kaaval to run"
     required: false
     default: "main"
 
 runs:
   using: "composite"
   steps:
-    - name: Check out Argus
+    - name: Check out Kaaval
       uses: actions/checkout@v4
       with:
-        repository: argus-k8s/Argus
-        ref: ${{ inputs.argus-ref }}
-        path: .argus-scan
+        repository: kaaval/kaaval
+        ref: ${{ inputs.kaaval-ref }}
+        path: .kaaval-scan
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
         cache: pip
-        cache-dependency-path: .argus-scan/control-plane/requirements.txt
+        cache-dependency-path: .kaaval-scan/control-plane/requirements.txt
 
-    - name: Install Argus
+    - name: Install Kaaval
       shell: bash
-      run: pip install -q -r .argus-scan/control-plane/requirements.txt
+      run: pip install -q -r .kaaval-scan/control-plane/requirements.txt
 
-    - name: Run Argus scan
+    - name: Run Kaaval scan
       shell: bash
-      working-directory: .argus-scan/control-plane
+      working-directory: .kaaval-scan/control-plane
       run: |
         args=(scan rbac --output "${{ inputs.output }}")
         [ -n "${{ inputs.manifests }}" ]        && args+=(--manifests "$GITHUB_WORKSPACE/${{ inputs.manifests }}")

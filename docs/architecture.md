@@ -89,7 +89,7 @@ The scanner needs read-only access:
 | `""` (core) | nodes | get, list | version inventory |
 | `apps` | deployments, daemonsets | get, list | add-on detection |
 
-No write verbs anywhere — Argus recommends fixes, it does not apply them.
+No write verbs anywhere — Kaaval recommends fixes, it does not apply them.
 
 ## CE / EE split
 

@@ -1,6 +1,6 @@
-# Contributing to Argus
+# Contributing to Kaaval
 
-Argus is a self-hosted Kubernetes security scanner built on one principle: a
+Kaaval is a self-hosted Kubernetes security scanner built on one principle: a
 finding is only useful once it's tied to *your* environment and comes with a
 concrete next step. Contributions that push in that direction — better
 detection, better context, better remediation — are very welcome.
@@ -71,7 +71,7 @@ inventing an ID. A wrong compliance citation is worse than none.
 
 ### 2. A new finding source
 
-Argus's moat is the scoring/explanation layer, not the detection engine, so
+Kaaval's moat is the scoring/explanation layer, not the detection engine, so
 the more sources feed it the better. The pattern: write a pure adapter that
 emits the existing finding dict shape, and everything downstream
 (`compute_contextual_score()`, `build_remediation()`, PDF, dashboard) works
@@ -81,8 +81,8 @@ for the worked design.
 ## Workflow
 
 1. Open (or comment on) an issue first for anything non-trivial, so we don't
-   duplicate work. Look for [`good first issue`](https://github.com/argus-k8s/Argus/labels/good%20first%20issue)
-   and [`help wanted`](https://github.com/argus-k8s/Argus/labels/help%20wanted).
+   duplicate work. Look for [`good first issue`](https://github.com/kaaval/kaaval/labels/good%20first%20issue)
+   and [`help wanted`](https://github.com/kaaval/kaaval/labels/help%20wanted).
 2. Branch off `main`. Keep PRs focused — one rule, one source, one fix.
 3. `make test` passes; add coverage for new behavior.
 4. Conventional commit messages (`feat:`, `fix:`, `docs:`, `chore:`) — see the
@@ -104,7 +104,7 @@ More detail in [docs/architecture.md](docs/architecture.md).
 
 ## Scope and philosophy
 
-Argus recommends fixes; it does not apply them (read-only cluster access, no
+Kaaval recommends fixes; it does not apply them (read-only cluster access, no
 write verbs). Detection without guidance is noise — every finding should
 explain *why* it matters and *what to do*. If a change moves away from that,
 it's probably out of scope; open an issue to discuss before building.
