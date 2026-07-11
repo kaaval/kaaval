@@ -256,9 +256,9 @@ def _print_sarif(result: dict) -> None:
                 "id": row["rule_id"],
                 "name": row["rule_id"],
                 "shortDescription": {"text": _humanize_rule_type(row["rule_id"])},
-                "helpUri": "https://github.com/rrskris/Argus",
+                "helpUri": "https://github.com/rrskris/Kaaval",
                 "properties": {"tags": ["rbac", "security"]},
-            }
+                }
 
     sarif_results = []
     for row in rows:
@@ -292,11 +292,11 @@ def _print_sarif(result: dict) -> None:
         "runs": [{
             "tool": {
                 "driver": {
-                    "name": "Argus",
-                    "informationUri": "https://github.com/rrskris/Argus",
+                    "name": "Kaaval",
+                    "informationUri": "https://github.com/rrskris/Kaaval",
                     "rules": list(rules_by_id.values()),
-                }
-            },
+                    }
+                    },
             "results": sarif_results,
         }],
     }
