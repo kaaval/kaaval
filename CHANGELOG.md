@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no arguments (or `serve`) runs the API server.
 
 ### Added
+- **PolicyReport output** (`--output policyreport`): findings emit as Kubernetes
+  Policy WG `wgpolicyk8s.io/v1alpha2` PolicyReport/ClusterPolicyReport documents —
+  one report per namespace plus a cluster report — with contextual score,
+  remediation, and CIS refs in `properties`. Validated against the wg-policy CRDs
+  in a live cluster and consumed by policy-reporter under `source: Kaaval`.
+- Roadmap v2: every item tied to a labeled issue and a GitHub milestone
+  (v1.2 / v1.3 / v2.0), plus an explicit "how this ladders to CNCF" section.
 - RBAC misconfiguration scanning: 11 rules mapped to CIS Kubernetes Benchmark
   v1.12.0 §5.1, with per-finding remediation (kubectl command, why-it-matters,
   benchmark refs, compliance + audit notes).
