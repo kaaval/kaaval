@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 )
 
 func init() {

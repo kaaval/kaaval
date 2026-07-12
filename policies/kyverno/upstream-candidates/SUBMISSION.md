@@ -1,8 +1,14 @@
 # Kyverno upstream submission guide
 
 Two contributions to [`kyverno/policies`](https://github.com/kyverno/policies),
-both closing gaps confirmed against `main` (2026-07-07). Submit under your own
-GitHub identity. Everything here is copy-paste ready; the only required step
+both closing gaps confirmed against `main` (2026-07-07, re-confirmed 2026-07-11).
+
+> **STATUS: both SUBMITTED 2026-07-11** — [kyverno/policies#1507](https://github.com/kyverno/policies/pull/1507)
+> (new `restrict-exec-verbs-roles` policy) and
+> [kyverno/policies#1508](https://github.com/kyverno/policies/pull/1508)
+> (`system:authenticated` rule in all three variants). `kyverno test` passed
+> locally (5 / 32 / 14 / 14 results) before submission. This document remains
+> as the record of the submission rationale. Everything here is copy-paste ready; the only required step
 before opening each PR is re-running `kyverno test` locally and re-confirming
 the gap still exists.
 

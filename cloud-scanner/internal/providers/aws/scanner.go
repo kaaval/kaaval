@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/providers/aws"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

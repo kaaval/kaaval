@@ -1,12 +1,23 @@
 # Security policy
 
+## Supported versions
+
+| Version | Supported |
+|---|---|
+| latest release (currently 1.1.x) | ✅ |
+| `main` (`:edge` images) | ✅ best-effort |
+| older releases | ❌ — upgrade to the latest release |
+
+Security fixes land on `main` and ship in the next release; we do not backport
+to older versions at the project's current size.
+
 ## Reporting a vulnerability
 
-Argus is a security tool, so we take issues in Argus itself seriously.
+Kaaval is a security tool, so we take issues in Kaaval itself seriously.
 
 **Do not open a public issue for a security vulnerability.** Instead, use
 GitHub's private [security advisory
-reporting](https://github.com/rrskris/Argus/security/advisories/new), or email
+reporting](https://github.com/kaaval/kaaval/security/advisories/new), or email
 the maintainer at rrskris@gmail.com with:
 
 - a description of the issue and its impact,
@@ -18,11 +29,11 @@ coordinated disclosure.
 
 ## Scope
 
-Most relevant to Argus's own posture:
+Most relevant to Kaaval's own posture:
 
 - The control plane handles cluster credentials and bearer tokens — issues in
   auth, token handling, or credential storage are in scope.
-- Argus requests **read-only** cluster access and applies no changes; a code
+- Kaaval requests **read-only** cluster access and applies no changes; a code
   path that acquires write access to a scanned cluster is a bug, report it.
 - The CLI and API run untrusted manifest/feed input through parsers — parser
   crashes or injection are in scope.

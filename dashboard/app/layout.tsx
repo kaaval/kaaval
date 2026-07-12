@@ -13,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Argus — Security Visibility Platform",
+  title: "Kaaval — Security Visibility Platform",
   description: "Unified security visibility: agent, cloud CSPM, integrations, customizable dashboard",
 };
 

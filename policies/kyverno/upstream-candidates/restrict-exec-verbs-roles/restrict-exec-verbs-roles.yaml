@@ -18,7 +18,7 @@ metadata:
       policy prevents the RBAC grant itself from being created, which is the
       durable control. Interactive access should be granted through an audited
       break-glass role instead of a standing permission. Mirrors the
-      exec_attach_grant rule in Argus's RBAC scanner (rbac_service.py).
+      exec_attach_grant rule in Kaaval's RBAC scanner (rbac_service.py).
 spec:
   validationFailureAction: Audit
   background: true

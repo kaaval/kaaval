@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   control-plane:
     runs-on: ubuntu-latest
@@ -13,13 +16,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: argus
+          POSTGRES_USER: kaaval
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: argus_db
+          POSTGRES_DB: kaaval_db
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U argus -d argus_db"
+          --health-cmd "pg_isready -U kaaval -d kaaval_db"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -27,21 +30,21 @@ jobs:
       run:
         working-directory: control-plane
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://argus:password@localhost:5432/argus_db
-          ARGUS_ADMIN_PASSWORD: test-admin-password
-          ARGUS_SECRET_KEY: ci_secret_key
-          ARGUS_REFRESH_SECRET_KEY: ci_refresh_secret_key
+          DATABASE_URL: postgresql://kaaval:password@localhost:5432/kaaval_db
+          KAAVAL_ADMIN_PASSWORD: test-admin-password
+          KAAVAL_SECRET_KEY: ci_secret_key
+          KAAVAL_REFRESH_SECRET_KEY: ci_refresh_secret_key
         run: pytest tests/
 
   dashboard:
@@ -50,9 +53,9 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
           cache: "npm"

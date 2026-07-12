@@ -6,6 +6,8 @@ DB, or network is needed.
 
 import json
 
+import yaml
+
 import pytest
 
 from app.cli import build_graph_from_manifests, load_context, main
@@ -141,7 +143,7 @@ metadata:
 
 
 def test_context_file_loading_and_validation(tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text(
         "environment: dev\ndata_classification: public\n"
         "compliance_scope: []\nexposure: internal\nfail_on_score: 12\n"
@@ -154,7 +156,7 @@ def test_context_file_loading_and_validation(tmp_path):
 
 
 def test_invalid_context_value_is_a_usage_error(tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text("environment: prod\n")  # not a valid enum value
 
     with pytest.raises(SystemExit) as exc:
@@ -190,7 +192,7 @@ def test_no_gate_flags_means_exit_zero_even_with_findings(risky_dir):
 
 
 def test_context_file_threshold_applies_without_flag(risky_dir, tmp_path):
-    ctx_file = tmp_path / "argus.yaml"
+    ctx_file = tmp_path / "kaaval.yaml"
     ctx_file.write_text("environment: production\nfail_on_score: 5\n")
 
     assert main(["scan", "rbac", "--manifests", str(risky_dir), "--context-file", str(ctx_file)]) == 1
@@ -221,3 +223,30 @@ def test_sarif_output_is_valid_shape(risky_dir, capsys):
 
     # sarif output must still not affect the gate's exit code semantics
     assert code == 0  # no --fail-on-score/--fail-on-severity passed here
+def test_policyreport_output_matches_wgpolicy_schema(risky_dir, capsys):
+    code = main(["scan", "rbac", "--manifests", str(risky_dir), "--output", "policyreport"])
+
+    docs = list(yaml.safe_load_all(capsys.readouterr().out))
+    assert docs, "expected at least one report document"
+
+    kinds = {d["kind"] for d in docs}
+    assert "ClusterPolicyReport" in kinds  # wide-open-binding findings are cluster-scoped
+    assert "PolicyReport" in kinds  # the team-a secret-reader finding is namespaced
+
+    for d in docs:
+        assert d["apiVersion"] == "wgpolicyk8s.io/v1alpha2"
+        assert d["summary"]["fail"] == len(d["results"])
+        if d["kind"] == "PolicyReport":
+            assert d["metadata"]["namespace"]
+        for r in d["results"]:
+            assert r["result"] == "fail"
+            assert r["severity"] in {"critical", "high", "medium", "low", "info"}
+            assert r["policy"] and r["message"]
+            # the CRD requires string-valued properties
+            assert all(isinstance(v, str) for v in r["properties"].values())
+            ref = r["resources"][0]
+            assert ref["kind"] in {"RoleBinding", "ClusterRoleBinding"}
+            if d["kind"] == "PolicyReport":
+                assert ref["namespace"] == d["metadata"]["namespace"]
+
+    assert code == 0  # output format must not affect gate semantics

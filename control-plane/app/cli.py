@@ -1,5 +1,5 @@
 """
-Argus CLI — headless scanning for CI/CD pipelines.
+Kaaval CLI — headless scanning for CI/CD pipelines.
 
 Runs the same pure rule engine and Contextual Risk Score the server uses,
 with no database, auth, or running control plane:
@@ -12,9 +12,9 @@ with no database, auth, or running control plane:
 
     # gate the pipeline on contextually scored risk
     python -m app.cli scan rbac --manifests ./k8s/ \
-        --context-file argus.yaml --fail-on-score 20 --output json
+        --context-file kaaval.yaml --fail-on-score 20 --output json
 
-The risk context lives in a versioned file in the app repo (argus.yaml):
+The risk context lives in a versioned file in the app repo (kaaval.yaml):
 
     environment: production          # production | staging | dev
     data_classification: pii         # public | internal | pii | financial | phi
@@ -23,7 +23,7 @@ The risk context lives in a versioned file in the app repo (argus.yaml):
     fail_on_score: 20                # optional; CLI flags override
     fail_on_severity: HIGH           # optional
 
-That is the point of gating on Argus instead of a flat severity threshold:
+That is the point of gating on Kaaval instead of a flat severity threshold:
 the same wildcard ClusterRole that hard-fails a production/PCI pipeline can
 pass with a warning in dev, because the context says so.
 
@@ -70,7 +70,7 @@ def load_context(path: str | None) -> dict:
             "warning: no --context-file given — scoring with defaults "
             f"({_DEFAULT_CONTEXT['environment']}/{_DEFAULT_CONTEXT['data_classification']}/"
             f"{_DEFAULT_CONTEXT['exposure']}, no compliance scope). "
-            "Commit an argus.yaml for context-aware gating.",
+            "Commit a kaaval.yaml for context-aware gating.",
             file=sys.stderr,
         )
         return dict(_DEFAULT_CONTEXT)
@@ -194,7 +194,7 @@ def _severity_breakdown(findings: list) -> dict:
 
 def _print_table(result: dict) -> None:
     findings = result["findings"]
-    print(f"Argus RBAC scan — {result['total_bindings_checked']} bindings checked, "
+    print(f"Kaaval RBAC scan — {result['total_bindings_checked']} bindings checked, "
           f"{len(findings)} findings")
     counts = ", ".join(f"{k}={v}" for k, v in result["severity_breakdown"].items() if v)
     print(f"Severity: {counts or 'none'}\n")
@@ -303,6 +303,100 @@ def _print_sarif(result: dict) -> None:
     print(json.dumps(sarif, indent=2))
 
 
+# PolicyReport (wgpolicyk8s.io/v1alpha2) — the Kubernetes Policy WG standard
+# consumed by policy-reporter, Kyverno, Falco, and Trivy-operator. Kaaval only
+# *emits* the documents; applying them to a cluster stays the caller's choice,
+# keeping the scanner's read-only contract intact.
+
+_SEVERITY_TO_POLICYREPORT = {
+    "CRITICAL": "critical",
+    "HIGH": "high",
+    "MEDIUM": "medium",
+    "LOW": "low",
+    "UNKNOWN": "info",
+}
+
+
+def _policyreport_result(f: dict) -> dict:
+    binding = f["binding"]
+    rem = f["remediation"]
+    refs = "; ".join(
+        f"{r['benchmark']}{' ' + r['id'] if r.get('id') else ''}"
+        for r in rem["benchmark_refs"]
+    )
+    resource = {
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "kind": binding["kind"],
+        "name": binding["name"],
+    }
+    if binding.get("namespace"):
+        resource["namespace"] = binding["namespace"]
+    # properties values must be strings per the CRD schema
+    properties = {
+        "contextual_score": str(f.get("contextual_score", "")),
+        "remediation": rem["action"],
+        "why_it_matters": rem["why_it_matters"],
+    }
+    if refs:
+        properties["benchmark_refs"] = refs
+    return {
+        "source": "Kaaval",
+        "policy": f["rule_type"],
+        "category": "rbac",
+        "severity": _SEVERITY_TO_POLICYREPORT.get(f.get("severity", "UNKNOWN"), "info"),
+        "result": "fail",
+        "scored": True,
+        "message": f["title"],
+        "resources": [resource],
+        "properties": properties,
+    }
+
+
+def _build_policy_reports(result: dict) -> list:
+    """Group findings into one PolicyReport per namespace plus one
+    ClusterPolicyReport for cluster-scoped findings."""
+    by_namespace: dict = {}
+    cluster_results: list = []
+    for f in result["findings"]:
+        ns = f["binding"].get("namespace")
+        if ns:
+            by_namespace.setdefault(ns, []).append(_policyreport_result(f))
+        else:
+            cluster_results.append(_policyreport_result(f))
+
+    empty_summary = {"pass": 0, "fail": 0, "warn": 0, "error": 0, "skip": 0}
+    reports = []
+    for ns in sorted(by_namespace):
+        results = by_namespace[ns]
+        reports.append({
+            "apiVersion": "wgpolicyk8s.io/v1alpha2",
+            "kind": "PolicyReport",
+            "metadata": {
+                "name": "kaaval-rbac",
+                "namespace": ns,
+                "labels": {"app.kubernetes.io/managed-by": "kaaval"},
+            },
+            "summary": {**empty_summary, "fail": len(results)},
+            "results": results,
+        })
+    # always emit the cluster report so a clean scan still produces an artifact
+    reports.append({
+        "apiVersion": "wgpolicyk8s.io/v1alpha2",
+        "kind": "ClusterPolicyReport",
+        "metadata": {
+            "name": "kaaval-rbac",
+            "labels": {"app.kubernetes.io/managed-by": "kaaval"},
+        },
+        "summary": {**empty_summary, "fail": len(cluster_results)},
+        "results": cluster_results,
+    })
+    return reports
+
+
+def _print_policyreport(result: dict) -> None:
+    print(yaml.safe_dump_all(_build_policy_reports(result), sort_keys=False), end="")
+
+
 def _apply_gate(findings: list, fail_on_score, fail_on_severity) -> int:
     breaches = []
     if fail_on_score is not None:
@@ -329,7 +423,7 @@ def _apply_gate(findings: list, fail_on_score, fail_on_severity) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="argus", description="Argus headless scanner for CI/CD pipelines."
+        prog="kaaval", description="Kaaval headless scanner for CI/CD pipelines."
     )
     sub = parser.add_subparsers(dest="command", required=True)
     scan = sub.add_parser("scan", help="Run a scan")
@@ -339,10 +433,10 @@ def main(argv: list[str] | None = None) -> int:
     source = rbac.add_mutually_exclusive_group()
     source.add_argument("--kubeconfig", help="Scan a live cluster via this kubeconfig")
     source.add_argument("--manifests", help="Scan RBAC YAML manifests in this file/directory (shift-left)")
-    rbac.add_argument("--context-file", help="argus.yaml risk context (risk context as code)")
+    rbac.add_argument("--context-file", help="kaaval.yaml risk context (risk context as code)")
     rbac.add_argument("--fail-on-score", type=float, help="Exit 1 if any finding scores >= this")
     rbac.add_argument("--fail-on-severity", help="Exit 1 if any finding is at/above this severity")
-    rbac.add_argument("--output", choices=["table", "json", "sarif"], default="table")
+    rbac.add_argument("--output", choices=["table", "json", "sarif", "policyreport"], default="table")
 
     args = parser.parse_args(argv)
 
@@ -372,6 +466,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2))
     elif args.output == "sarif":
         _print_sarif(result)
+    elif args.output == "policyreport":
+        _print_policyreport(result)
     else:
         _print_table(result)
 

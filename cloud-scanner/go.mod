@@ -1,4 +1,4 @@
-module argus/cloud-scanner
+module kaaval/cloud-scanner
 
 go 1.25.0
 

@@ -22,6 +22,29 @@ Three deployable pieces (`deploy/docker-compose.yml`): Postgres, the
 control plane, the dashboard. `agent/` and `cloud-scanner/` are skeletons
 reserved for the planned Go engine — no source yet.
 
+## Ecosystem interfaces (standards in, standards out)
+
+Kaaval deliberately speaks the ecosystem's formats instead of inventing its
+own — findings enter and leave through standard interfaces:
+
+```
+   IN (finding sources)                              OUT (consumers)
+┌───────────────────────┐                     ┌───────────────────────────┐
+│ live cluster (RO API) │──┐               ┌─▶│ PolicyReport CRDs ────────│▶ policy-reporter,
+│ manifests dir (CLI)   │──┤               │  │ (wgpolicyk8s.io/v1alpha2) │  Kyverno/Falco/Trivy
+│ K8s CVE feed/OSV/NVD  │──┤  ┌─────────┐  ├─▶│ SARIF (#1, in review) ────│▶ GitHub Security tab
+│ Trivy JSON (#5) ──────│──┼─▶│ scoring │──┼─▶│ JUnit XML (#2) ───────────│▶ GitLab/Jenkins panes
+│ Grype JSON (#6) ──────│──┤  │ + reme- │  ├─▶│ JSON / table / PDF        │
+│ Kyverno PolicyReports │──┘  │ diation │  ├─▶│ Prometheus /metrics (#3)  │
+│ (#35) ────────────────│     │  core   │  └─▶│ dashboard (Next.js)       │
+└───────────────────────┘     └─────────┘     └───────────────────────────┘
+      entry points: CLI · GitHub Action · REST API · (Helm #8, CronJob #33)
+```
+
+Dashed items link to their roadmap issues. Every source feeds the same
+pure-function core, so a new format is an adapter, never a fork of the
+scoring logic.
+
 ## The pure-function core
 
 The deliberate architectural decision: detection, scoring, and explanation
@@ -64,15 +87,15 @@ tested.
 | `report_service.py` | CVE + RBAC PDF reports |
 | `cli.py` | headless scan + gating for CI/CD |
 | `models.py` | SQLAlchemy models (below) |
-| `audit.py`, `license.py` | audit log entries; CE/EE license gate |
+| `audit.py` | audit log entries |
 
 ## Data model (the parts that matter)
 
 - `Tenant`, `User` — single-tenant in practice today; every scoped table
   carries `tenant_id`.
-- `ScanContext` — the four risk-context fields, one row per tenant (CE
-  self-scan path). `ClusterRegistration` carries the same four fields for
-  the EE multi-cluster path.
+- `ScanContext` — the four risk-context fields, one row per tenant
+  (self-scan path). `ClusterRegistration` carries the same four fields for
+  the multi-cluster path.
 - `CVEFeed` / `CVEEntry` — feed registry and parsed entries.
 - `CVEScanResult` / `K8sCVEScanResult` / `RBACScanResult` — persisted scans;
   findings are stored as JSON **including** their `contextual_score`,
@@ -89,12 +112,11 @@ The scanner needs read-only access:
 | `""` (core) | nodes | get, list | version inventory |
 | `apps` | deployments, daemonsets | get, list | add-on detection |
 
-No write verbs anywhere — Argus recommends fixes, it does not apply them.
+No write verbs anywhere — Kaaval recommends fixes, it does not apply them.
 
-## CE / EE split
+## Licensing
 
-Everything documented here is Community Edition and self-hosted with no
-license. The license gate (`license.py`) reserves fleet management,
-SSO/OIDC, advanced compliance mapping, and custom scoring weights for a
-future Enterprise tier; none of it is required for scanning, scoring, PDF
-export, or CI gating.
+Everything documented here — scanning, scoring, PDF export, CI gating,
+multi-cluster comparison — is Apache-2.0 open source and self-hosted with
+no license gates of any kind. The project targets CNCF vendor-neutrality
+standards; there is no enterprise tier and no reserved feature set.

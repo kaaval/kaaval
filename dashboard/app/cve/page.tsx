@@ -158,7 +158,7 @@ export default function CVEPage() {
         }
     }, [token]);
 
-    // Free, self-scan path — scans the cluster Argus is running in (no cluster
+    // Free, self-scan path — scans the cluster Kaaval is running in (no cluster
     // registration required). This is the primary v1 detector flow.
     const loadSelfScan = useCallback(async () => {
         if (!token) return;
@@ -248,8 +248,8 @@ export default function CVEPage() {
         } finally { setScanning(false); }
     };
 
-    // Primary v1 action: scan the cluster Argus runs in unless a registered
-    // (EE) cluster is selected, in which case scan that one instead.
+    // Primary v1 action: scan the cluster Kaaval runs in unless a registered
+    // cluster is selected, in which case scan that one instead.
     const runScan = () => (selectedClusterId ? runClusterScan() : runSelfScan());
 
     const downloadReport = async () => {
@@ -262,7 +262,7 @@ export default function CVEPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "argus-cve-report.pdf";
+        a.download = "kaaval-cve-report.pdf";
         a.click();
         URL.revokeObjectURL(url);
     };

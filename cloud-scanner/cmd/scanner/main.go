@@ -9,20 +9,20 @@ import (
 
 	"github.com/google/uuid"
 
-	"argus/cloud-scanner/internal/compliance"
-	"argus/cloud-scanner/internal/database"
-	"argus/cloud-scanner/internal/providers"
-	"argus/cloud-scanner/internal/providers/aws"
+	"kaaval/cloud-scanner/internal/compliance"
+	"kaaval/cloud-scanner/internal/database"
+	"kaaval/cloud-scanner/internal/providers"
+	"kaaval/cloud-scanner/internal/providers/aws"
 )
 
 func main() {
-	log.Println("Starting Argus Cloud Scanner...")
+	log.Println("Starting Kaaval Cloud Scanner...")
 
 	ctx := context.TODO()
 
 	dbConnStr := os.Getenv("DATABASE_URL")
 	if dbConnStr == "" {
-		dbConnStr = "postgres://argus:password@127.0.0.1:5432/argus_db?sslmode=disable"
+		dbConnStr = "postgres://kaaval:password@127.0.0.1:5432/kaaval_db?sslmode=disable"
 	}
 	db, err := database.New(dbConnStr)
 	if err != nil {
@@ -42,9 +42,9 @@ func main() {
 		log.Printf("Warning: failed to load dynamic rules from %s: %v", extDir, err)
 	}
 
-	// Resolve scan ID — API passes ARGUS_SCAN_ID so both sides share the same UUID
+	// Resolve scan ID — API passes KAAVAL_SCAN_ID so both sides share the same UUID
 	var scanID string
-	if envID := os.Getenv("ARGUS_SCAN_ID"); envID != "" {
+	if envID := os.Getenv("KAAVAL_SCAN_ID"); envID != "" {
 		scanID = envID
 		log.Printf("Using API-provided scan ID: %s", scanID)
 		db.UpdateScanStatus(ctx, scanID, "IN_PROGRESS", "")
@@ -65,7 +65,7 @@ func main() {
 	}
 	log.Printf("Connected to AWS account: %s", accountID)
 
-	if scanID == os.Getenv("ARGUS_SCAN_ID") {
+	if scanID == os.Getenv("KAAVAL_SCAN_ID") {
 		// status already set to IN_PROGRESS above
 	} else {
 		if err := db.SaveScan(ctx, scanID, "IN_PROGRESS", accountID); err != nil {

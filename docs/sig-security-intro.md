@@ -17,21 +17,21 @@ meeting once they're up.
 
 ## Draft (mailing list / Slack long-form)
 
-Subject: Argus — contextual risk scoring for cluster findings; two policy
+Subject: Kaaval — contextual risk scoring for cluster findings; two policy
 gaps we'd like to upstream
 
 Hi all,
 
 I'm Vamshi Krishna Santhapuri — infrastructure security architect, 14+ years
-of Linux and Kubernetes operations work. I've been building Argus
-(github.com/rrskris/Argus), an Apache-2.0 cluster security scanner, and I'd
+of Linux and Kubernetes operations work. I've been building Kaaval
+(github.com/kaaval/kaaval), an Apache-2.0 cluster security scanner, and I'd
 rather grow it with this group's visibility than in isolation.
 
-The problem Argus works on is not detection — kube-bench, Trivy, Kubescape
+The problem Kaaval works on is not detection — kube-bench, Trivy, Kubescape
 and friends detect plenty. The problem is that every scanner ranks findings
 by flat severity, so a wildcard ClusterRole in a throwaway dev cluster looks
 exactly as urgent as the same one in an internet-facing PCI production
-cluster. Argus scores each finding through an explainable formula (base
+cluster. Kaaval scores each finding through an explainable formula (base
 severity × environment × data classification × compliance scope × exposure)
 and attaches a remediation object to every finding: the fix command, why it
 ranks where it does, the CIS Kubernetes Benchmark v1.12.0 control it maps to,
@@ -46,7 +46,7 @@ nodes/proxy, CSR approval, webhook config writes, token creation, and
 cluster-admin bound to broad identities.
 
 Two things came out of building the RBAC rules that seem worth bringing
-here, since they're gaps in the shared ecosystem rather than in Argus:
+here, since they're gaps in the shared ecosystem rather than in Kaaval:
 
 1. The Kyverno policy library blocks pod exec *requests* at admission
    (block-pod-exec-by-*), but nothing restricts the RBAC *grant* of
@@ -63,11 +63,11 @@ If there's a better home or prior art for either, I'd genuinely like to know
 before submitting. And if contextual scoring of findings overlaps with
 anything this group is already thinking about (PolicyReport consumers,
 severity normalization, etc.), I'd be glad to align with it rather than
-invent another format — Argus already plans to ingest PolicyReports rather
+invent another format — Kaaval already plans to ingest PolicyReports rather
 than define its own policy engine.
 
 It's Apache-2.0 and open to contributors — there's a public roadmap and a set
-of scoped good-first-issues (github.com/rrskris/Argus), and `make setup-dev`
+of scoped good-first-issues (github.com/kaaval/kaaval), and `make setup-dev`
 gives you a vulnerable kind cluster to test rules against in a couple of
 minutes.
 
@@ -75,14 +75,14 @@ I'll be at an upcoming Friday meeting. Feedback, criticism, and "this
 already exists, look here" all welcome.
 
 Vamshi
-github.com/rrskris/Argus | linuxcent.com
+github.com/kaaval/kaaval | linuxcent.com
 
 ---
 
 ## Short version (Slack)
 
-Hi all — Vamshi, infra security architect, 14y Linux/K8s ops. Building Argus
-(github.com/rrskris/Argus, Apache-2.0): cluster CVE + RBAC scanning where
+Hi all — Vamshi, infra security architect, 14y Linux/K8s ops. Building Kaaval
+(github.com/kaaval/kaaval, Apache-2.0): cluster CVE + RBAC scanning where
 every finding gets an explainable contextual risk score (env × data class ×
 compliance × exposure) and a remediation object with CIS v1.12.0 mappings —
 aimed at the "every scanner ranks by flat severity" problem. Building the

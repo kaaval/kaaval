@@ -4,7 +4,7 @@ meta:
   category: siem
   description: >
     Pull security alerts from a Wazuh manager via the Wazuh REST API.
-    Normalises alerts into the Argus finding schema for unified visibility.
+    Normalises alerts into the Kaaval finding schema for unified visibility.
 
 connector:
   type: pull

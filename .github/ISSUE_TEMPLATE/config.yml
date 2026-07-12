@@ -1,5 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Question or discussion
-    url: https://github.com/rrskris/Argus/discussions
+    url: https://github.com/kaaval/kaaval/discussions
     about: Ask a question, share a scan result, or propose an idea before opening an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/kaaval/kaaval/security/advisories/new
+    about: Please report vulnerabilities privately — never in a public issue.

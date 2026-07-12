@@ -1,8 +1,18 @@
-# Argus
+# Kaaval
+
+[![CI](https://github.com/kaaval/kaaval/actions/workflows/ci.yml/badge.svg)](https://github.com/kaaval/kaaval/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/kaaval/kaaval/badge)](https://scorecard.dev/viewer/?uri=github.com/kaaval/kaaval)
+[![Release](https://img.shields.io/github/v/release/kaaval/kaaval?include_prereleases)](https://github.com/kaaval/kaaval/releases)
+[![License](https://img.shields.io/github/license/kaaval/kaaval)](LICENSE)
+[![Good first issues](https://img.shields.io/github/issues/kaaval/kaaval/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/kaaval/kaaval/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 **A self-hosted Kubernetes security scanner that tells you what a finding actually means for *your* cluster — not just a list of IDs to look up yourself.**
 
-Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings, good luck prioritizing them. Argus is built around a different principle — a finding is only useful once it's tied to *your* environment and comes with a concrete next step. Every finding, whether it's a CVE or an RBAC misconfiguration, is run through the same **Contextual Risk Score** engine and ranked by what actually matters to you, not a flat severity sort.
+> *Kaaval (కావల్) means "guard duty" — the act of keeping watch. Formerly known as Argus; renamed to avoid colliding with the long-running [openargus](https://openargus.org) network audit project.*
+
+![Kaaval scanning deliberately vulnerable RBAC and ranking findings by contextual risk](docs/assets/kaaval-scan.gif)
+
+Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings, good luck prioritizing them. Kaaval is built around a different principle — a finding is only useful once it's tied to *your* environment and comes with a concrete next step. Every finding, whether it's a CVE or an RBAC misconfiguration, is run through the same **Contextual Risk Score** engine and ranked by what actually matters to you, not a flat severity sort.
 
 ## What it does today
 
@@ -11,6 +21,7 @@ Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings,
 - **Contextual Risk Score** — the same CVE or RBAC finding ranks differently depending on your answers to four questions: is this production or dev? What data lives here (PII, financial, PHI)? Which compliance frameworks apply (PCI-DSS, HIPAA, SOC2)? Is it internet-facing? The score is never a black box — every finding shows exactly which factors pushed it up or down. Formula and weights: [docs/contextual-risk-score.md](docs/contextual-risk-score.md).
 - **Remediation on every finding** — not just detection: each finding carries what to do (with the `kubectl` command), why it matters in *your* context, the CIS v1.12.0 control it maps to, a compliance note (PCI-DSS/HIPAA/SOC2), and an audit-trail note — in the API, the dashboard, and the PDF.
 - **CI/CD gating** — a headless CLI scans RBAC manifests at PR time (shift-left) or a live cluster post-deploy, and fails the pipeline on the *contextual* score, not a flat severity: the same finding that blocks a production/PCI pipeline can pass in dev. Ships with a GitHub Action and GitLab/Jenkins/Argo CD recipes: [docs/ci-integration.md](docs/ci-integration.md).
+- **PolicyReport output** — findings emit as Kubernetes-standard [PolicyReport CRDs](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report) (`--output policyreport`), so they land in [policy-reporter](https://kyverno.github.io/policy-reporter/) side by side with Kyverno and Falco results — contextual score and remediation included.
 - **PDF reporting** — export any scan (CVE or RBAC) as a shareable report.
 - **Multi-cluster comparison** — register multiple clusters and scan/compare across them.
 - **Kyverno policies** — admission-time counterparts of the RBAC rules in [`policies/kyverno/`](policies/kyverno/README.md), with an honest map of what the upstream policy library already covers and two policies being contributed upstream.
@@ -35,7 +46,7 @@ Dashboard overview:
 
 ## Why it's different
 
-Detection tools (Trivy, Prowler, kube-bench) tell you *what's wrong*. SaaS platforms (Wiz, Orca) add business context but keep the scoring model opaque and the price tag five figures. Argus does the contextual scoring in the open, self-hosted, with the formula visible in the code — you can see exactly why a finding ranks where it does.
+Detection tools (Trivy, Prowler, kube-bench) tell you *what's wrong*. SaaS platforms (Wiz, Orca) add business context but keep the scoring model opaque and the price tag five figures. Kaaval does the contextual scoring in the open, self-hosted, with the formula visible in the code — you can see exactly why a finding ranks where it does.
 
 ## Architecture
 
@@ -55,26 +66,51 @@ Key endpoints (full reference: [docs/api.md](docs/api.md)):
 - `GET|PUT /cve/context` — read/update your tenant's risk context (environment, data classification, compliance scope, exposure) that drives the Contextual Risk Score
 - `POST /rbac/scan`, `GET /rbac/scan/latest`, `GET /rbac/scan/latest/report.pdf` — scan the cluster's Roles/ClusterRoles/bindings for misconfigurations, fetch or export the result
 
-For pipelines there's also a headless CLI needing no server or database at all:
-
-```bash
-cd control-plane
-python -m app.cli scan rbac --manifests ./k8s/ --context-file argus.yaml --fail-on-score 20
-```
-
-Argus is structured open-core (see `control-plane/app/license.py`): everything above is Community Edition and runs fully self-hosted with no license required. Advanced compliance mapping, SSO, multi-cluster fleet management, and other Enterprise features are gated behind an optional license token — none of that is required to use the scanner.
+Kaaval is fully open source under Apache-2.0 — no open-core split, no feature gates, no license tokens. Everything the project ships runs self-hosted, and it will stay that way: the project is being built toward CNCF vendor-neutrality standards.
 
 ## Quickstart
 
+### 1. See it work in under two minutes (throwaway cluster)
+
+You need Docker, [`kind`](https://kind.sigs.k8s.io/), `kubectl`, and Python 3.12:
+
+```bash
+git clone https://github.com/kaaval/kaaval && cd kaaval
+make setup-dev        # kind cluster preloaded with deliberately-vulnerable RBAC
+make scan             # findings ranked by contextual risk, remediation included
+make teardown-dev     # clean up
+```
+
+No cluster handy? `make scan-manifests` scans the fixture YAML directly — no
+Kubernetes at all.
+
+### 2. Scan your own manifests in CI (no server, no database)
+
+Straight from the published image, no build:
+
+```bash
+docker run --rm -v "$PWD/k8s:/scan" ghcr.io/kaaval/kaaval \
+    scan rbac --manifests /scan --fail-on-score 20
+```
+
+> On SELinux-enforcing hosts (Fedora, RHEL), add `:z` to the volume flag
+> (`-v "$PWD/k8s:/scan:z"`) or the container can't read the mount.
+
+There's also a [GitHub Action](docs/ci-integration.md) plus GitLab/Jenkins/Argo CD
+recipes, and gating on the *contextual* score means the same finding can block a
+production/PCI pipeline yet pass in dev.
+
+### 3. Full stack with the dashboard
+
 ```bash
 cp deploy/.env.example deploy/.env
-# fill in POSTGRES_PASSWORD, ARGUS_SECRET_KEY, ARGUS_REFRESH_SECRET_KEY
+# fill in POSTGRES_PASSWORD, KAAVAL_SECRET_KEY, KAAVAL_REFRESH_SECRET_KEY
 # (generate secrets with: openssl rand -hex 32)
 
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
-The admin user is seeded automatically on first start. If `ARGUS_ADMIN_PASSWORD` is left blank in `.env`, a password is generated and printed once to the control-plane container logs:
+The admin user is seeded automatically on first start. If `KAAVAL_ADMIN_PASSWORD` is left blank in `.env`, a password is generated and printed once to the control-plane container logs:
 
 ```bash
 docker compose -f deploy/docker-compose.yml logs control-plane | grep "Admin created"
@@ -82,13 +118,27 @@ docker compose -f deploy/docker-compose.yml logs control-plane | grep "Admin cre
 
 Dashboard: http://localhost:3000. API: http://localhost:8000.
 
+## Status
+
+| Component | State |
+|---|---|
+| `control-plane/` — CVE + RBAC scanning, contextual scoring, remediation, PDF, CLI | ✅ shipped, tested, in the published image |
+| `dashboard/` — Next.js UI | ✅ shipped |
+| `policies/kyverno/` — admission-time counterparts | ✅ shipped |
+| `deploy/helm/` | 🚧 planned ([#8](https://github.com/kaaval/kaaval/issues/8)) |
+| `agent/`, `cloud-scanner/` — Go engine | 📐 reserved skeletons, not functional (see their READMEs) |
+| `plugins/` — integration descriptors | 📐 reserved, no runtime |
+
+Where this is going: [ROADMAP.md](ROADMAP.md). **Using Kaaval?** Add yourself to
+[ADOPTERS.md](ADOPTERS.md) — adopter entries directly support the project's CNCF path.
+
 ## Development
 
 ```bash
 # control-plane
 cd control-plane
 pip install -r requirements.txt
-ARGUS_ADMIN_PASSWORD=test-admin-password pytest tests/
+KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/
 
 # dashboard
 cd dashboard

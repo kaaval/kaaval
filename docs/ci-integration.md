@@ -1,6 +1,6 @@
 # CI/CD integration
 
-Argus gates pipelines on the **Contextual Risk Score**, not a flat severity
+Kaaval gates pipelines on the **Contextual Risk Score**, not a flat severity
 threshold. The same wildcard ClusterRole that hard-fails a production/PCI
 pipeline can pass with a warning in a dev pipeline — because the committed
 risk context says so. Every scanner can `--fail-on HIGH`; this is the part
@@ -14,7 +14,7 @@ Two integration modes, one CLI:
 - **Live (`--kubeconfig`)** — scan a real cluster's RBAC state, e.g. after a
   deploy or on a schedule, using a read-only CI service account.
 
-Both run the exact same rule engine and scoring code the Argus server uses
+Both run the exact same rule engine and scoring code the Kaaval server uses
 (`evaluate_rbac_findings()` + `compute_contextual_score()` +
 `build_remediation()`), with no database, auth, or running control plane.
 
@@ -26,20 +26,25 @@ pip install -r requirements.txt
 
 # shift-left: scan manifests in ./k8s
 python -m app.cli scan rbac --manifests ./k8s/ \
-    --context-file argus.yaml --fail-on-score 20 --output json
+    --context-file kaaval.yaml --fail-on-score 20 --output json
 
 # live: scan the cluster a kubeconfig points at
 python -m app.cli scan rbac --kubeconfig ./ci-kubeconfig --fail-on-severity HIGH
 ```
 
-Or via the container image (the control-plane image includes the CLI):
+Or via the published container image (`ghcr.io/kaaval/kaaval` — no build, includes the CLI):
 
 ```bash
-docker build -t argus-control-plane control-plane/
-docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/argus.yaml:/scan/argus.yaml" \
-    argus-control-plane \
-    python -m app.cli scan rbac --manifests /scan --context-file /scan/argus.yaml --fail-on-score 20
+docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/kaaval.yaml:/scan/kaaval.yaml" \
+    ghcr.io/kaaval/kaaval \
+    scan rbac --manifests /scan --context-file /scan/kaaval.yaml --fail-on-score 20
 ```
+
+Tags: `latest` (newest release), `vX.Y.Z` (pinned release), `edge` (tip of main).
+
+> **SELinux hosts (Fedora, RHEL, CentOS Stream):** add `:z` to each volume flag
+> (`-v "$PWD/k8s:/scan:z"`) or the container is denied read access to the mount
+> and the scan fails with a `PermissionError`.
 
 ### Flags
 
@@ -47,10 +52,10 @@ docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/argus.yaml:/scan/argus.yaml" \
 |---|---|
 | `--manifests PATH` | Scan RBAC YAML at PATH (file or directory, recursive; handles multi-doc YAML and `kind: List`) |
 | `--kubeconfig PATH` | Scan the live cluster this kubeconfig points at (falls back to `$KUBECONFIG` / in-cluster / default kubeconfig if omitted) |
-| `--context-file PATH` | `argus.yaml` risk context (see below). Without it, defaults apply (production/internal/internal, no compliance scope) and a warning is printed |
+| `--context-file PATH` | `kaaval.yaml` risk context (see below). Without it, defaults apply (production/internal/internal, no compliance scope) and a warning is printed |
 | `--fail-on-score N` | Exit 1 if any finding's contextual score ≥ N |
 | `--fail-on-severity SEV` | Exit 1 if any finding is at/above SEV (`LOW`/`MEDIUM`/`HIGH`/`CRITICAL`, case-insensitive) |
-| `--output table\|json` | Human table (default) or full JSON including remediation objects and score factors |
+| `--output table\|json\|policyreport` | Human table (default), full JSON including remediation objects and score factors, or Kubernetes [PolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report) documents |
 
 ### Exit codes
 
@@ -60,7 +65,7 @@ docker run --rm -v "$PWD/k8s:/scan" -v "$PWD/argus.yaml:/scan/argus.yaml" \
 | 1 | Gate failed — at least one finding at/above a threshold |
 | 2 | Usage error (bad path, invalid context value, bad flag) |
 
-### `argus.yaml` — risk context as code
+### `kaaval.yaml` — risk context as code
 
 Commit this next to your manifests. It is the input to the scoring formula
 (see [contextual-risk-score.md](contextual-risk-score.md)) and it is
@@ -75,7 +80,7 @@ fail_on_score: 20                  # optional gate; CLI flags override
 fail_on_severity: HIGH             # optional gate; CLI flags override
 ```
 
-A sensible pattern: the dev overlay's `argus.yaml` says `environment: dev`
+A sensible pattern: the dev overlay's `kaaval.yaml` says `environment: dev`
 with a high (or no) threshold; the production overlay says
 `environment: production` with a strict one. Same manifests, different gates
 — by declared risk, not by pipeline copy-paste.
@@ -98,58 +103,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: rrskris/Argus/.github/actions/argus-scan@main
+      - uses: kaaval/kaaval/.github/actions/kaaval-scan@main
         with:
           manifests: k8s/
-          context-file: k8s/argus.yaml
+          context-file: k8s/kaaval.yaml
           fail-on-score: "20"
 ```
 
 Inputs mirror the CLI flags (`manifests`, `kubeconfig`, `context-file`,
-`fail-on-score`, `fail-on-severity`, `output`, plus `argus-ref` to pin an
-Argus version). For live-cluster scans in CI, write the service-account
+`fail-on-score`, `fail-on-severity`, `output`, plus `kaaval-ref` to pin an
+Kaaval version). For live-cluster scans in CI, write the service-account
 kubeconfig from a secret first:
 
 ```yaml
       - run: echo "${{ secrets.CI_KUBECONFIG }}" > ci-kubeconfig
-      - uses: rrskris/Argus/.github/actions/argus-scan@main
+      - uses: kaaval/kaaval/.github/actions/kaaval-scan@main
         with:
           kubeconfig: ci-kubeconfig
-          context-file: argus.yaml
+          context-file: kaaval.yaml
           fail-on-severity: CRITICAL
 ```
 
 ## GitLab CI
 
 ```yaml
-argus-rbac-scan:
+kaaval-rbac-scan:
   stage: test
   image: python:3.12-slim
   script:
-    - git clone --depth 1 https://github.com/rrskris/Argus /argus
-    - pip install -q -r /argus/control-plane/requirements.txt
-    - cd /argus/control-plane
+    - git clone --depth 1 https://github.com/kaaval/kaaval /kaaval
+    - pip install -q -r /kaaval/control-plane/requirements.txt
+    - cd /kaaval/control-plane
     - python -m app.cli scan rbac
         --manifests "$CI_PROJECT_DIR/k8s"
-        --context-file "$CI_PROJECT_DIR/k8s/argus.yaml"
-        --fail-on-score 20 --output json | tee "$CI_PROJECT_DIR/argus-report.json"
+        --context-file "$CI_PROJECT_DIR/k8s/kaaval.yaml"
+        --fail-on-score 20 --output json | tee "$CI_PROJECT_DIR/kaaval-report.json"
   artifacts:
     when: always
-    paths: [argus-report.json]
+    paths: [kaaval-report.json]
 ```
 
 ## Jenkins (declarative)
 
 ```groovy
-stage('Argus RBAC scan') {
+stage('Kaaval RBAC scan') {
     steps {
         sh '''
-            git clone --depth 1 https://github.com/rrskris/Argus argus
-            pip install -q -r argus/control-plane/requirements.txt
-            cd argus/control-plane
+            git clone --depth 1 https://github.com/kaaval/kaaval kaaval
+            pip install -q -r kaaval/control-plane/requirements.txt
+            cd kaaval/control-plane
             python -m app.cli scan rbac \
                 --manifests "$WORKSPACE/k8s" \
-                --context-file "$WORKSPACE/k8s/argus.yaml" \
+                --context-file "$WORKSPACE/k8s/kaaval.yaml" \
                 --fail-on-score 20
         '''
     }
@@ -165,18 +170,18 @@ the sync's health if the gate trips:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: argus-postsync-scan
+  name: kaaval-postsync-scan
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
 spec:
   template:
     spec:
-      serviceAccountName: argus-scanner   # read-only RBAC viewer, see below
+      serviceAccountName: kaaval-scanner   # read-only RBAC viewer, see below
       restartPolicy: Never
       containers:
-        - name: argus
-          image: <your-registry>/argus-control-plane:latest
+        - name: kaaval
+          image: <your-registry>/kaaval-control-plane:latest
           command: ["python", "-m", "app.cli", "scan", "rbac",
                     "--fail-on-severity", "CRITICAL"]
 ```
@@ -188,14 +193,14 @@ objects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: argus-scanner
+  name: kaaval-scanner
 rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "clusterroles", "rolebindings", "clusterrolebindings"]
     verbs: ["get", "list"]
 ```
 
-(Yes — Argus's own scanner role is intentionally narrow enough that Argus
+(Yes — Kaaval's own scanner role is intentionally narrow enough that Kaaval
 would not flag it.)
 
 ## Consuming the JSON in other tooling
@@ -206,6 +211,30 @@ would not flag it.)
 v1.12.0 control IDs, `compliance_note`, `audit_note`). Pipe it to `jq`, post
 it as a PR comment, or attach it as a build artifact — the explanation
 travels with the finding.
+
+## PolicyReport output (Kubernetes policy ecosystem)
+
+`--output policyreport` emits findings as
+[PolicyReport / ClusterPolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report)
+documents (`wgpolicyk8s.io/v1alpha2`) — the Kubernetes Policy WG standard that
+[policy-reporter](https://kyverno.github.io/policy-reporter/), Kyverno, Falco,
+and Trivy-operator all speak. One `PolicyReport` per namespace, one
+`ClusterPolicyReport` for cluster-scoped findings; each result carries the
+contextual score, remediation, and CIS refs in `properties`.
+
+```bash
+python -m app.cli scan rbac --kubeconfig ./kubeconfig --output policyreport \
+    | kubectl apply -f -
+
+kubectl get polr -A      # namespaced findings, PASS/FAIL columns
+kubectl get cpolr        # cluster-scoped findings
+```
+
+Kaaval only *emits* the documents — applying them is your pipeline's explicit
+step (shown above), so the scanner itself keeps its read-only contract. With
+policy-reporter installed, Kaaval findings appear in its UI and API under
+`source: Kaaval`, side by side with Kyverno and Falco results, and can fan out
+to its notification targets (Slack, Teams, webhooks).
 
 Planned next (see the roadmap): SARIF output for the GitHub Security tab,
 JUnit XML for GitLab/Jenkins test panes, Prometheus metrics + scan-diff for
