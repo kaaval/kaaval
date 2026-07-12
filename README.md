@@ -72,7 +72,7 @@ Kaaval is fully open source under Apache-2.0 — no open-core split, no feature 
 
 ### 1. See it work in under two minutes (throwaway cluster)
 
-You need Docker, [`kind`](https://kind.sigs.k8s.io/), `kubectl`, and Python 3.12:
+You need Docker, [`kind`](https://kind.sigs.k8s.io/), `kubectl`, and Python 3.14:
 
 ```bash
 git clone https://github.com/kaaval/kaaval && cd kaaval
