@@ -12,7 +12,7 @@ you verify them in seconds.
 ## Get a vulnerable cluster running in under two minutes
 
 You need Docker, [`kind`](https://kind.sigs.k8s.io/), `kubectl`, and Python
-3.12. Then:
+3.14. Then:
 
 ```bash
 make setup-dev        # kind cluster + planted RBAC misconfigurations

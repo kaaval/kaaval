@@ -15,6 +15,11 @@ updates:
     groups:
       npm-patch:
         update-types: ["patch"]
+    ignore:
+      # eslint 10 is blocked by eslint-config-next / eslint-plugin-import peer
+      # support (see PR #25); re-enable when the plugin chain declares support
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directories:
