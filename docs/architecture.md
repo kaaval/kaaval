@@ -22,6 +22,29 @@ Three deployable pieces (`deploy/docker-compose.yml`): Postgres, the
 control plane, the dashboard. `agent/` and `cloud-scanner/` are skeletons
 reserved for the planned Go engine — no source yet.
 
+## Ecosystem interfaces (standards in, standards out)
+
+Kaaval deliberately speaks the ecosystem's formats instead of inventing its
+own — findings enter and leave through standard interfaces:
+
+```
+   IN (finding sources)                              OUT (consumers)
+┌───────────────────────┐                     ┌───────────────────────────┐
+│ live cluster (RO API) │──┐               ┌─▶│ PolicyReport CRDs ────────│▶ policy-reporter,
+│ manifests dir (CLI)   │──┤               │  │ (wgpolicyk8s.io/v1alpha2) │  Kyverno/Falco/Trivy
+│ K8s CVE feed/OSV/NVD  │──┤  ┌─────────┐  ├─▶│ SARIF (#1, in review) ────│▶ GitHub Security tab
+│ Trivy JSON (#5) ──────│──┼─▶│ scoring │──┼─▶│ JUnit XML (#2) ───────────│▶ GitLab/Jenkins panes
+│ Grype JSON (#6) ──────│──┤  │ + reme- │  ├─▶│ JSON / table / PDF        │
+│ Kyverno PolicyReports │──┘  │ diation │  ├─▶│ Prometheus /metrics (#3)  │
+│ (#35) ────────────────│     │  core   │  └─▶│ dashboard (Next.js)       │
+└───────────────────────┘     └─────────┘     └───────────────────────────┘
+      entry points: CLI · GitHub Action · REST API · (Helm #8, CronJob #33)
+```
+
+Dashed items link to their roadmap issues. Every source feeds the same
+pure-function core, so a new format is an adapter, never a fork of the
+scoring logic.
+
 ## The pure-function core
 
 The deliberate architectural decision: detection, scoring, and explanation

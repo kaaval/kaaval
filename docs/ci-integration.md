@@ -55,7 +55,7 @@ Tags: `latest` (newest release), `vX.Y.Z` (pinned release), `edge` (tip of main)
 | `--context-file PATH` | `kaaval.yaml` risk context (see below). Without it, defaults apply (production/internal/internal, no compliance scope) and a warning is printed |
 | `--fail-on-score N` | Exit 1 if any finding's contextual score ≥ N |
 | `--fail-on-severity SEV` | Exit 1 if any finding is at/above SEV (`LOW`/`MEDIUM`/`HIGH`/`CRITICAL`, case-insensitive) |
-| `--output table\|json` | Human table (default) or full JSON including remediation objects and score factors |
+| `--output table\|json\|policyreport` | Human table (default), full JSON including remediation objects and score factors, or Kubernetes [PolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report) documents |
 
 ### Exit codes
 
@@ -211,6 +211,30 @@ would not flag it.)
 v1.12.0 control IDs, `compliance_note`, `audit_note`). Pipe it to `jq`, post
 it as a PR comment, or attach it as a build artifact — the explanation
 travels with the finding.
+
+## PolicyReport output (Kubernetes policy ecosystem)
+
+`--output policyreport` emits findings as
+[PolicyReport / ClusterPolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report)
+documents (`wgpolicyk8s.io/v1alpha2`) — the Kubernetes Policy WG standard that
+[policy-reporter](https://kyverno.github.io/policy-reporter/), Kyverno, Falco,
+and Trivy-operator all speak. One `PolicyReport` per namespace, one
+`ClusterPolicyReport` for cluster-scoped findings; each result carries the
+contextual score, remediation, and CIS refs in `properties`.
+
+```bash
+python -m app.cli scan rbac --kubeconfig ./kubeconfig --output policyreport \
+    | kubectl apply -f -
+
+kubectl get polr -A      # namespaced findings, PASS/FAIL columns
+kubectl get cpolr        # cluster-scoped findings
+```
+
+Kaaval only *emits* the documents — applying them is your pipeline's explicit
+step (shown above), so the scanner itself keeps its read-only contract. With
+policy-reporter installed, Kaaval findings appear in its UI and API under
+`source: Kaaval`, side by side with Kyverno and Falco results, and can fan out
+to its notification targets (Slack, Teams, webhooks).
 
 Planned next (see the roadmap): SARIF output for the GitHub Security tab,
 JUnit XML for GitLab/Jenkins test panes, Prometheus metrics + scan-diff for

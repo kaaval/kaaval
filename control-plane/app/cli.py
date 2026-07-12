@@ -216,6 +216,100 @@ def _print_table(result: dict) -> None:
         print()
 
 
+# PolicyReport (wgpolicyk8s.io/v1alpha2) — the Kubernetes Policy WG standard
+# consumed by policy-reporter, Kyverno, Falco, and Trivy-operator. Kaaval only
+# *emits* the documents; applying them to a cluster stays the caller's choice,
+# keeping the scanner's read-only contract intact.
+
+_SEVERITY_TO_POLICYREPORT = {
+    "CRITICAL": "critical",
+    "HIGH": "high",
+    "MEDIUM": "medium",
+    "LOW": "low",
+    "UNKNOWN": "info",
+}
+
+
+def _policyreport_result(f: dict) -> dict:
+    binding = f["binding"]
+    rem = f["remediation"]
+    refs = "; ".join(
+        f"{r['benchmark']}{' ' + r['id'] if r.get('id') else ''}"
+        for r in rem["benchmark_refs"]
+    )
+    resource = {
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "kind": binding["kind"],
+        "name": binding["name"],
+    }
+    if binding.get("namespace"):
+        resource["namespace"] = binding["namespace"]
+    # properties values must be strings per the CRD schema
+    properties = {
+        "contextual_score": str(f.get("contextual_score", "")),
+        "remediation": rem["action"],
+        "why_it_matters": rem["why_it_matters"],
+    }
+    if refs:
+        properties["benchmark_refs"] = refs
+    return {
+        "source": "Kaaval",
+        "policy": f["rule_type"],
+        "category": "rbac",
+        "severity": _SEVERITY_TO_POLICYREPORT.get(f.get("severity", "UNKNOWN"), "info"),
+        "result": "fail",
+        "scored": True,
+        "message": f["title"],
+        "resources": [resource],
+        "properties": properties,
+    }
+
+
+def _build_policy_reports(result: dict) -> list:
+    """Group findings into one PolicyReport per namespace plus one
+    ClusterPolicyReport for cluster-scoped findings."""
+    by_namespace: dict = {}
+    cluster_results: list = []
+    for f in result["findings"]:
+        ns = f["binding"].get("namespace")
+        if ns:
+            by_namespace.setdefault(ns, []).append(_policyreport_result(f))
+        else:
+            cluster_results.append(_policyreport_result(f))
+
+    empty_summary = {"pass": 0, "fail": 0, "warn": 0, "error": 0, "skip": 0}
+    reports = []
+    for ns in sorted(by_namespace):
+        results = by_namespace[ns]
+        reports.append({
+            "apiVersion": "wgpolicyk8s.io/v1alpha2",
+            "kind": "PolicyReport",
+            "metadata": {
+                "name": "kaaval-rbac",
+                "namespace": ns,
+                "labels": {"app.kubernetes.io/managed-by": "kaaval"},
+            },
+            "summary": {**empty_summary, "fail": len(results)},
+            "results": results,
+        })
+    # always emit the cluster report so a clean scan still produces an artifact
+    reports.append({
+        "apiVersion": "wgpolicyk8s.io/v1alpha2",
+        "kind": "ClusterPolicyReport",
+        "metadata": {
+            "name": "kaaval-rbac",
+            "labels": {"app.kubernetes.io/managed-by": "kaaval"},
+        },
+        "summary": {**empty_summary, "fail": len(cluster_results)},
+        "results": cluster_results,
+    })
+    return reports
+
+
+def _print_policyreport(result: dict) -> None:
+    print(yaml.safe_dump_all(_build_policy_reports(result), sort_keys=False), end="")
+
+
 def _apply_gate(findings: list, fail_on_score, fail_on_severity) -> int:
     breaches = []
     if fail_on_score is not None:
@@ -255,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
     rbac.add_argument("--context-file", help="kaaval.yaml risk context (risk context as code)")
     rbac.add_argument("--fail-on-score", type=float, help="Exit 1 if any finding scores >= this")
     rbac.add_argument("--fail-on-severity", help="Exit 1 if any finding is at/above this severity")
-    rbac.add_argument("--output", choices=["table", "json"], default="table")
+    rbac.add_argument("--output", choices=["table", "json", "policyreport"], default="table")
 
     args = parser.parse_args(argv)
 
@@ -283,6 +377,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.output == "json":
         print(json.dumps(result, indent=2))
+    elif args.output == "policyreport":
+        _print_policyreport(result)
     else:
         _print_table(result)
 
