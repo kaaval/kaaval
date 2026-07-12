@@ -242,11 +242,11 @@ SRE alerting on *new* findings only, and a Helm chart for one-line install.
 ## GitHub Actions — SARIF upload to Security tab
 
 \`\`\`yaml
-- name: Run Argus RBAC scan
+- name: Run Kaaval RBAC scan
   run: |
     python -m app.cli scan rbac \
       --manifests ./k8s/ \
-      --context-file argus.yaml \
+      --context-file kaaval.yaml \
       --output sarif > results.sarif
 
 - - name: Upload SARIF to GitHub Security tab

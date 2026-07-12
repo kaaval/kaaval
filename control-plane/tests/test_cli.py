@@ -1,5 +1,5 @@
 """
-Unit tests for the headless CLI -- manifest to graph parsing, context loading,
+Unit tests for the headless CLI — manifest→graph parsing, context loading,
 and gating logic. Pure functions plus main() with --manifests, so no cluster,
 DB, or network is needed.
 """
@@ -223,6 +223,8 @@ def test_sarif_output_is_valid_shape(risky_dir, capsys):
 
     # sarif output must still not affect the gate's exit code semantics
     assert code == 0  # no --fail-on-score/--fail-on-severity passed here
+
+
 def test_policyreport_output_matches_wgpolicy_schema(risky_dir, capsys):
     code = main(["scan", "rbac", "--manifests", str(risky_dir), "--output", "policyreport"])
 

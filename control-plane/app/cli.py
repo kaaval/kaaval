@@ -256,7 +256,7 @@ def _print_sarif(result: dict) -> None:
                 "id": row["rule_id"],
                 "name": row["rule_id"],
                 "shortDescription": {"text": _humanize_rule_type(row["rule_id"])},
-                "helpUri": "https://github.com/rrskris/Kaaval",
+                "helpUri": "https://github.com/kaaval/kaaval/blob/main/docs/rbac-rules.md",
                 "properties": {"tags": ["rbac", "security"]},
                 }
 
@@ -293,7 +293,7 @@ def _print_sarif(result: dict) -> None:
             "tool": {
                 "driver": {
                     "name": "Kaaval",
-                    "informationUri": "https://github.com/rrskris/Kaaval",
+                    "informationUri": "https://github.com/kaaval/kaaval",
                     "rules": list(rules_by_id.values()),
                     }
                     },
