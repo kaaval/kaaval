@@ -239,3 +239,20 @@ to its notification targets (Slack, Teams, webhooks).
 Planned next (see the roadmap): SARIF output for the GitHub Security tab,
 JUnit XML for GitLab/Jenkins test panes, Prometheus metrics + scan-diff for
 SRE alerting on *new* findings only, and a Helm chart for one-line install.
+## GitHub Actions — SARIF upload to Security tab
+
+\`\`\`yaml
+- name: Run Kaaval RBAC scan
+  run: |
+    python -m app.cli scan rbac \
+      --manifests ./k8s/ \
+      --context-file kaaval.yaml \
+      --output sarif > results.sarif
+
+- - name: Upload SARIF to GitHub Security tab
+  uses: github/codeql-action/upload-sarif@v3
+  if: always()
+  with:
+    sarif_file: results.sarif
+  
+\`\`\`
