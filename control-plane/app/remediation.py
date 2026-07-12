@@ -54,6 +54,18 @@ _CIS_REFS = {
         {"benchmark": "OWASP Kubernetes Top 10", "id": "K03",
          "title": "Overly permissive RBAC configurations"},
     ],
+    # Segmentation violation: namespaced identity reaching cluster/cross-namespace scope.
+    # CIS 5.1.5 (default SA) and 5.1.6 (SA token automount) are adjacent but the
+    # closest direct controls are 5.1.5 and the RBAC Good Practices doc on
+    # namespace isolation. NIST 800-207A micro-segmentation is the primary reference.
+    "segmentation_violation": [
+        {"benchmark": CIS_BENCHMARK, "id": "5.1.5",
+         "title": "Ensure that default service accounts are not bound to active service account roles"},
+        {"benchmark": "NIST SP 800-207A", "id": "MS-3",
+         "title": "Enforce namespace isolation — identities should not cross namespace boundaries"},
+        {"benchmark": "Kubernetes RBAC Good Practices", "id": None,
+         "title": f"Namespace isolation — {_RBAC_GOOD_PRACTICES_URL}"},
+    ],
 }
 
 # Group subjects with an extra CIS control beyond the rule's own mapping.
@@ -112,6 +124,12 @@ _RBAC_ACTIONS = {
         "Remove create on persistentvolumes from {role}; provision storage via "
         "PersistentVolumeClaims and StorageClasses. Direct PV creation enables "
         "hostPath mounts onto node filesystems."
+    ),
+    "segmentation_violation": (
+        "Replace the ClusterRoleBinding with a namespaced RoleBinding scoped to "
+        "the ServiceAccount's own namespace, or create a namespace-scoped Role "
+        "with only the permissions the workload actually needs. "
+        "Remove the binding with: {binding_cmd}"
     ),
 }
 
