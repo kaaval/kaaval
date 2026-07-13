@@ -94,6 +94,13 @@ for the worked design.
    `git commit --amend -s` (or `git rebase --signoff main`).
 6. Open a PR with the template filled in.
 
+## Response times
+
+Kaaval is maintained on nights and weekends across time zones — expect a
+response within a few days. Your PR won't go stale: CI is the gate, so nothing
+merges without passing, and a friendly bump after a quiet week is always
+welcome. See [SUPPORT.md](SUPPORT.md) for the full picture.
+
 ## Project layout
 
 | Path | What it is |
