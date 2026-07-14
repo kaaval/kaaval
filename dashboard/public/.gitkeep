@@ -1,0 +1,2 @@
+# Keep dashboard/public/ tracked so the Dockerfile COPY /app/public step works.
+# Next.js serves static assets from here; git drops empty dirs otherwise (see #57).
