@@ -40,6 +40,7 @@ import yaml
 
 from .rbac_service import evaluate_rbac_findings
 from .scoring import (
+    MAX_CONTEXTUAL_SCORE,
     SEVERITY_ORDER,
     VALID_DATA_CLASSIFICATIONS,
     VALID_ENVIRONMENTS,
@@ -245,7 +246,7 @@ def _finding_rows(result: dict) -> list:
         })
     return rows
 
-def _contextual_score_to_security_severity(score: float, score_cap: float = 15.0) -> str:
+def _contextual_score_to_security_severity(score: float, score_cap: float = MAX_CONTEXTUAL_SCORE) -> str:
     """
     Scale Kaaval's Contextual Risk Score (0..score_cap) to GitHub's
     security-severity range (0.0-10.0, CVSS-style string).

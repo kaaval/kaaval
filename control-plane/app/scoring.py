@@ -15,6 +15,14 @@ _ENV_WEIGHT = {"production": 1.5, "staging": 1.2, "dev": 0.5}
 _DATA_CLASS_WEIGHT = {"pii": 1.5, "financial": 1.5, "phi": 1.5, "internal": 1.0, "public": 0.8}
 _EXPOSURE_WEIGHT = {"internet-facing": 1.4, "internal": 1.0}
 
+MAX_CONTEXTUAL_SCORE = (
+    max(_SEVERITY_BASE.values())
+    * max(_ENV_WEIGHT.values())
+    * max(_DATA_CLASS_WEIGHT.values())
+    * 1.3  # max compliance_weight
+    * max(_EXPOSURE_WEIGHT.values())
+)
+
 # Allowed risk-context values — shared by the HTTP API and the CLI so both
 # validate against the same enums the weights above understand.
 VALID_ENVIRONMENTS = set(_ENV_WEIGHT)
