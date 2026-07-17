@@ -75,10 +75,11 @@ Kaaval is built toward a **CNCF Sandbox application**, deliberately:
    Kubernetes RBAC Good Practices — recognized frameworks, not invented ones.
 2. **Upstream first** — where a gap belongs in someone else's project, we fix
    it there ([contributions ledger](docs/upstream-contributions.md)).
-3. **Governance and supply chain** already follow CNCF norms: vendor-neutral
+3. **Structure toward CNCF norms** — a phased [architecture blueprint](docs/design/architecture-blueprint.md) (RFC) moves the pure risk engine into an explicit hexagonal core with decoupled Action/Helm repos, the standard graduated-project layout.
+4. **Governance and supply chain** already follow CNCF norms: vendor-neutral
    [GOVERNANCE](GOVERNANCE.md), DCO, OpenSSF Scorecard, signed releases with
    SBOM + provenance, no feature gates of any kind.
-4. **Evidence over claims** — [ADOPTERS.md](ADOPTERS.md) entries and sustained
+5. **Evidence over claims** — [ADOPTERS.md](ADOPTERS.md) entries and sustained
    multi-contributor activity are what a Sandbox application is judged on.
    Using Kaaval? [Add yourself](ADOPTERS.md); it directly helps.
 
