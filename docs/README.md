@@ -12,6 +12,7 @@ quickstart. This directory is the detail:
 | [ci-integration.md](ci-integration.md) | The headless CLI, `kaaval.yaml` risk-context-as-code, exit-code gating, GitHub Actions / GitLab / Jenkins / Argo CD recipes |
 | [trivy-grype-integration.md](trivy-grype-integration.md) | Design (not yet built): ingesting Trivy/Grype reports into the same scoring pipeline |
 | [design/zero-trust-rbac.md](design/zero-trust-rbac.md) | Design (RFC): identity-centric Zero-Trust RBAC analysis, anchored to NIST SP 800-207A — the Effective Access Graph and beyond |
+| [design/architecture-blueprint.md](design/architecture-blueprint.md) | Design (RFC): Hexagonal core, uv-workspace packages, decoupled Action/Helm repos, contract-first TS types, path-filtered CI — phased & non-breaking |
 | [integration_standard.md](integration_standard.md) | Extension-pack standard (design intent, partially implemented) |
 | [sig-security-intro.md](sig-security-intro.md) | Draft introduction for the Kubernetes SIG Security Tooling community |
 
