@@ -1,18 +1,23 @@
+import logging
 import os
 import uuid
 import secrets
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from . import models, database, auth, audit
 from .cve_service import cve_service as _cve_service
+from .health import run_deep_checks
 from .routers import cve, rbac
+
+logger = logging.getLogger(__name__)
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
@@ -145,11 +150,42 @@ async def shutdown_event():
     _scheduler.shutdown(wait=False)
 
 
+# ── Errors ─────────────────────────────────────────────────────────────────────
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log the full traceback under a correlation id; never send the stack out."""
+    error_id = uuid.uuid4().hex[:12]
+    logger.error(
+        f"error_id={error_id} unhandled exception on {request.method} {request.url.path}",
+        exc_info=exc,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error — quote the error_id when reporting.",
+            "error_id": error_id,
+        },
+    )
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": "Kaaval Control Plane", "version": "1.0.0"}
+
+
+@app.get("/health")
+def health(deep: bool = False):
+    """Liveness probe; `?deep=1` preflights every dependency with fix commands."""
+    if not deep:
+        return {"status": "ok"}
+    report = run_deep_checks(database.engine, database.SessionLocal)
+    return JSONResponse(
+        status_code=503 if report["status"] == "error" else 200,
+        content=report,
+    )
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
