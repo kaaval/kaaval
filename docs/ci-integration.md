@@ -239,9 +239,10 @@ to its notification targets (Slack, Teams, webhooks).
 Planned next (see the roadmap): SARIF output for the GitHub Security tab,
 JUnit XML for GitLab/Jenkins test panes, Prometheus metrics + scan-diff for
 SRE alerting on *new* findings only, and a Helm chart for one-line install.
+
 ## GitHub Actions — SARIF upload to Security tab
 
-\`\`\`yaml
+```yaml
 - name: Run Kaaval RBAC scan
   run: |
     python -m app.cli scan rbac \
@@ -249,18 +250,33 @@ SRE alerting on *new* findings only, and a Helm chart for one-line install.
       --context-file kaaval.yaml \
       --output sarif > results.sarif
 
-- - name: Upload SARIF to GitHub Security tab
+- name: Upload SARIF to GitHub Security tab
   uses: github/codeql-action/upload-sarif@v3
   if: always()
   with:
     sarif_file: results.sarif
-  
-\`\`\`
+```
+
 ## Scheduled in-cluster scans (CronJob)
 
 For continuous posture monitoring, deploy the CronJob manifest under `deploy/`
 to run the headless CLI on a schedule and publish findings as PolicyReport
 documents directly into your cluster.
+
+### Prerequisites
+
+The apply step needs the Policy WG `wgpolicyk8s.io` CRDs
+(`PolicyReport`/`ClusterPolicyReport`) present in the cluster — without them
+the Job fails with `no matches for kind "PolicyReport"`. Install either the
+CRDs alone:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/wg-policy-prototypes/master/policy-report/crd/wgpolicyk8s.io/v1alpha2/wgpolicyk8s.io_policyreports.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/wg-policy-prototypes/master/policy-report/crd/wgpolicyk8s.io/v1alpha2/wgpolicyk8s.io_clusterpolicyreports.yaml
+```
+
+or [policy-reporter](https://kyverno.github.io/policy-reporter/) (or Kyverno),
+which ships the CRDs and adds a UI for browsing the findings.
 
 ### Deploy
 

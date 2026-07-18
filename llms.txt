@@ -1,0 +1,15 @@
+# (project name)
+
+> One-paragraph summary: what this is, who it serves, and the one command that
+> proves it works. Agents read this file first — keep it under 10 KB.
+
+## Quickstart
+
+```bash
+# the install + hello-world commands, exactly as a cold-start reader would run them
+```
+
+## Key files
+
+- [README](README.md) — landing page
+- (link the API/CLI reference and the config schema)

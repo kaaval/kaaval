@@ -170,7 +170,7 @@ spec:
                   mountPath: /tmp
 
           # Phase 2: kubectl applies the PolicyReport documents the scanner
-          # emitted. bitnami/kubectl is a minimal image containing only
+          # emitted. rancher/kubectl is a minimal image containing only
           # kubectl — no shell, no extra tooling needed.
           containers:
             - name: kubectl-apply

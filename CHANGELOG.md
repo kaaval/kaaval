@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no arguments (or `serve`) runs the API server.
 
 ### Added
+- **Scheduled in-cluster scans**: `deploy/cronjob.yaml` runs the headless CLI on a
+  schedule and applies findings as PolicyReport/ClusterPolicyReport documents —
+  init-container scans, pinned-kubectl main container applies, minimal split
+  ClusterRoles, hardened pod security context. Contributed by
+  [@Maqbool61](https://github.com/Maqbool61) (#59).
 - **PolicyReport output** (`--output policyreport`): findings emit as Kubernetes
   Policy WG `wgpolicyk8s.io/v1alpha2` PolicyReport/ClusterPolicyReport documents —
   one report per namespace plus a cluster report — with contextual score,
@@ -43,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   score formula, CI integration, Trivy/Grype ingestion design.
 - Project governance: GOVERNANCE.md, MAINTAINERS.md, ADOPTERS.md, full Contributor
   Covenant v2.1, DCO sign-off requirement, CHANGELOG.
+
+### Fixed
+- CLI exits 2 with an actionable error when the `--manifests` path is missing or
+  unreadable, instead of silently reporting a clean scan — `Path.rglob()` swallows
+  `EACCES` during traversal, so unreadable directories previously produced a false
+  exit 0. Regression tests exercise real chmod-000 conditions. Contributed by
+  [@donkk11](https://github.com/donkk11) (#45).
 
 ### Removed
 - The vestigial CE/EE license gate (`license.py`) and every "Enterprise tier"
