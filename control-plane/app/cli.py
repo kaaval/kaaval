@@ -61,6 +61,12 @@ def _fail_usage(message: str) -> None:
     sys.exit(2)
 
 
+def _fail_unreadable_manifests(path_str: str) -> None:
+    print(f"error: cannot read manifests path '{path_str}': permission denied", file=sys.stderr)
+    print("hint: on SELinux hosts, mount volumes with ':z' — e.g. -v \"$PWD/k8s:/scan:z\"", file=sys.stderr)
+    sys.exit(2)
+
+
 # ── Risk context ───────────────────────────────────────────────────────────────
 
 def load_context(path: str | None) -> dict:
@@ -133,8 +139,24 @@ def _iter_manifest_docs(root: Path):
 def build_graph_from_manifests(path_str: str) -> dict:
     """Parse RBAC objects from YAML into K8sClient.get_rbac_graph_data()'s shape."""
     root = Path(path_str)
-    if not root.exists():
+    try:
+        root_exists = root.exists()
+    except PermissionError:
+        _fail_unreadable_manifests(path_str)
+    if not root_exists:
         _fail_usage(f"manifests path not found: {path_str}")
+
+    # Path.rglob() silently swallows EACCES during traversal, which would let an
+    # unreadable path masquerade as an empty (clean) scan with exit 0. Probe
+    # readability explicitly so the user gets a real, actionable error instead.
+    try:
+        if root.is_dir():
+            os.listdir(root)
+        else:
+            with open(root, "rb"):
+                pass
+    except PermissionError:
+        _fail_unreadable_manifests(path_str)
 
     graph = {"roles": [], "cluster_roles": [], "role_bindings": [], "cluster_role_bindings": []}
     for doc in _iter_manifest_docs(root):
