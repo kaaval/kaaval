@@ -14,10 +14,25 @@ probe with no dependency traffic.
 
 import logging
 from datetime import datetime, timedelta
+from typing import Literal, NotRequired, TypedDict
 
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
+
+
+class HealthCheckResult(TypedDict):
+    name: Literal["postgres", "cve-feeds", "kubernetes"]
+    ok: bool
+    required: bool
+    detail: str
+    fix: NotRequired[str]
+
+
+class DeepCheckResult(TypedDict):
+    status: Literal["ok", "degraded", "error"]
+    checks: list[HealthCheckResult]
+
 
 # The scheduler refreshes feeds every 24h — two missed cycles means something
 # is actually wrong, not just a slow crawl.
@@ -34,7 +49,7 @@ def _safe_url(engine) -> str:
     return engine.url.render_as_string(hide_password=True)
 
 
-def check_database(engine) -> dict:
+def check_database(engine) -> HealthCheckResult:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -54,7 +69,7 @@ def check_database(engine) -> dict:
         }
 
 
-def check_cve_feeds(db) -> dict:
+def check_cve_feeds(db) -> HealthCheckResult:
     from .models import CVEFeed
 
     feeds = db.query(CVEFeed).filter(CVEFeed.enabled == True).all()  # noqa: E712
@@ -108,7 +123,7 @@ def check_cve_feeds(db) -> dict:
     }
 
 
-def check_kubernetes() -> dict:
+def check_kubernetes() -> HealthCheckResult:
     from kubernetes import config as k8s_config
 
     try:
@@ -143,7 +158,7 @@ def check_kubernetes() -> dict:
         }
 
 
-def run_deep_checks(engine, session_factory) -> dict:
+def run_deep_checks(engine, session_factory) -> DeepCheckResult:
     """Run every preflight; report each failure with its fix command."""
     checks = [check_database(engine)]
     db_ok = checks[0]["ok"]

@@ -4,6 +4,9 @@ Kaaval CLI — headless scanning for CI/CD pipelines.
 Runs the same pure rule engine and Contextual Risk Score the server uses,
 with no database, auth, or running control plane:
 
+    # preflight control-plane dependencies without starting the API
+    python -m app.cli doctor
+
     # live cluster (CI service-account kubeconfig)
     python -m app.cli scan rbac --kubeconfig ./ci-kubeconfig
 
@@ -27,7 +30,8 @@ That is the point of gating on Kaaval instead of a flat severity threshold:
 the same wildcard ClusterRole that hard-fails a production/PCI pipeline can
 pass with a warning in dev, because the context says so.
 
-Exit codes: 0 clean/below threshold, 1 threshold breached, 2 usage error.
+Exit codes: 0 clean/below threshold, 1 threshold breached,
+2 usage error or required dependency unavailable.
 """
 
 import argparse
@@ -38,6 +42,7 @@ from pathlib import Path
 
 import yaml
 
+from .health import DeepCheckResult, run_deep_checks
 from .rbac_service import evaluate_rbac_findings
 from .scoring import (
     MAX_CONTEXTUAL_SCORE,
@@ -461,6 +466,25 @@ def _apply_gate(findings: list, fail_on_score, fail_on_severity) -> int:
     return 0
 
 
+# ── Dependency preflight ──────────────────────────────────────────────────────
+
+def _print_doctor(report: DeepCheckResult) -> None:
+    for check in report["checks"]:
+        marker = "✓" if check["ok"] else "✗"
+        line = f"{marker} {check['name']}: {check['detail']}"
+        if not check["ok"]:
+            line += f" | fix: {check['fix']}"
+        print(line)
+
+
+def run_doctor() -> int:
+    from . import database
+
+    report = run_deep_checks(database.engine, database.SessionLocal)
+    _print_doctor(report)
+    return 2 if report["status"] == "error" else 0
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
@@ -468,6 +492,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="kaaval", description="Kaaval headless scanner for CI/CD pipelines."
     )
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("doctor", help="Preflight Postgres, CVE feeds, and Kubernetes credentials")
     scan = sub.add_parser("scan", help="Run a scan")
     scan_sub = scan.add_subparsers(dest="scan_type", required=True)
 
@@ -481,6 +506,9 @@ def main(argv: list[str] | None = None) -> int:
     rbac.add_argument("--output", choices=["table", "json", "sarif", "policyreport"], default="table")
 
     args = parser.parse_args(argv)
+
+    if args.command == "doctor":
+        return run_doctor()
 
     context = load_context(args.context_file)
     fail_on_score = args.fail_on_score if args.fail_on_score is not None else context.pop("_fail_on_score", None)

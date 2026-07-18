@@ -102,6 +102,18 @@ There's also a [GitHub Action](docs/ci-integration.md) plus GitLab/Jenkins/Argo 
 recipes, and gating on the *contextual* score means the same finding can block a
 production/PCI pipeline yet pass in dev.
 
+Check the control-plane dependencies directly from the CLI, without starting
+the API:
+
+```bash
+cd control-plane
+python -m app.cli doctor
+```
+
+The command prints Postgres, CVE feed, and Kubernetes credential status with
+the exact fix for each failure. It exits `0` when every required dependency is
+available and `2` when a required dependency is down.
+
 ### 3. Full stack with the dashboard
 
 ```bash
