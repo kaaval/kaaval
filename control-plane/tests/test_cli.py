@@ -224,6 +224,16 @@ def test_sarif_output_is_valid_shape(risky_dir, capsys):
     # sarif output must still not affect the gate's exit code semantics
     assert code == 0  # no --fail-on-score/--fail-on-severity passed here
 
+def test_sarif_output_security_severity_is_valid(risky_dir, capsys):
+    code = main(["scan", "rbac", "--manifests", str(risky_dir), "--output", "sarif"])
+
+    sarif = json.loads(capsys.readouterr().out)
+    rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+
+    for rule in rules:
+        assert "security-severity" in rule["properties"]
+        sev = float(rule["properties"]["security-severity"])
+        assert 0.0 <= sev <= 10.0
 
 def test_policyreport_output_matches_wgpolicy_schema(risky_dir, capsys):
     code = main(["scan", "rbac", "--manifests", str(risky_dir), "--output", "policyreport"])

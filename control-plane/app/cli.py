@@ -40,6 +40,7 @@ import yaml
 
 from .rbac_service import evaluate_rbac_findings
 from .scoring import (
+    MAX_CONTEXTUAL_SCORE,
     SEVERITY_ORDER,
     VALID_DATA_CLASSIFICATIONS,
     VALID_ENVIRONMENTS,
@@ -267,20 +268,39 @@ def _finding_rows(result: dict) -> list:
         })
     return rows
 
+def _contextual_score_to_security_severity(score: float, score_cap: float = MAX_CONTEXTUAL_SCORE) -> str:
+    """
+    Scale Kaaval's Contextual Risk Score (0..score_cap) to GitHub's
+    security-severity range (0.0-10.0, CVSS-style string).
+
+    GitHub buckets: >9.0 critical, 7.0-8.9 high, 4.0-6.9 medium, <=3.9 low.
+    """
+    scaled = min(10.0, max(0.0, (score * 10.0) / score_cap))
+    return f"{scaled:.1f}"
 
 def _print_sarif(result: dict) -> None:
     rows = _finding_rows(result)
 
     rules_by_id = {}
+    max_score_by_rule = {}
     for row in rows:
-        if row["rule_id"] not in rules_by_id:
-            rules_by_id[row["rule_id"]] = {
-                "id": row["rule_id"],
-                "name": row["rule_id"],
-                "shortDescription": {"text": _humanize_rule_type(row["rule_id"])},
+        score = row["raw"].get("contextual_score") or 0.0
+        rule_id = row["rule_id"]
+        max_score_by_rule[rule_id] = max(max_score_by_rule.get(rule_id, 0.0), score)
+
+        if rule_id not in rules_by_id:
+            rules_by_id[rule_id] = {
+                "id": rule_id,
+                "name": rule_id,
+                "shortDescription": {"text": _humanize_rule_type(rule_id)},
                 "helpUri": "https://github.com/kaaval/kaaval/blob/main/docs/rbac-rules.md",
                 "properties": {"tags": ["rbac", "security"]},
                 }
+
+    for rule_id, rule in rules_by_id.items():
+        rule["properties"]["security-severity"] = _contextual_score_to_security_severity(
+            max_score_by_rule[rule_id]
+        )
 
     sarif_results = []
     for row in rows:
