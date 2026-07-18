@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no arguments (or `serve`) runs the API server.
 
 ### Added
+- **SARIF `security-severity`**: SARIF rules carry a `security-severity` scaled from
+  the per-rule maximum Contextual Risk Score (capped by `MAX_CONTEXTUAL_SCORE`,
+  derived from the scoring weight maxima), so GitHub's Security-tab ordering mirrors
+  Kaaval's contextual ranking. Contributed by
+  [@Diyaaa-12](https://github.com/Diyaaa-12) (#56).
 - **Scheduled in-cluster scans**: `deploy/cronjob.yaml` runs the headless CLI on a
   schedule and applies findings as PolicyReport/ClusterPolicyReport documents —
   init-container scans, pinned-kubectl main container applies, minimal split
