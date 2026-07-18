@@ -2,13 +2,22 @@
 
 ## Build / test / lint
 
+Backend (Python FastAPI):
 ```bash
-# replace with the exact commands for this project:
-make install   # or: pip install -e ".[dev]" / npm ci
-make test      # or: pytest -q / npm test
-make lint      # or: ruff check . / npm run lint
+cd control-plane
+pip install -r requirements.txt
+KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/
+```
+
+Frontend (Next.js):
+```bash
+cd dashboard
+npm ci
+npm run dev
 ```
 
 ## Conventions
 
-- (project-specific rules an agent must follow to contribute correctly)
+- Backend codebase is located under `control-plane/app/`.
+- Frontend dashboard is located under `dashboard/`.
+- Keep `llms.txt` to a single Markdown H1. Avoid `# ` (hash-space) comment lines inside its code blocks — strict Markdown parsers count them as extra H1 headings.
