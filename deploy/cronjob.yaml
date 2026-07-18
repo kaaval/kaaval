@@ -1,0 +1,204 @@
+# Kaaval scheduled in-cluster RBAC scan — CronJob manifest
+#
+# Runs the headless CLI on a schedule, emits PolicyReport documents, and
+# applies them to the cluster's policy ecosystem (policy-reporter, Kyverno,
+# Falco, Trivy-operator).
+#
+# Two-phase approach:
+#   init container (kaaval-scan)  — scans RBAC, writes policyreport YAML
+#                                   to a shared emptyDir volume
+#   main container (kubectl-apply) — applies the YAML; keeps the scanner
+#                                   image read-only and kubectl-free
+#
+# Deploy:
+#   kubectl apply -f deploy/cronjob.yaml
+#
+# Trigger once immediately (for testing):
+#   kubectl create job --from=cronjob/kaaval-rbac-scan kaaval-rbac-scan-manual -n kaaval
+#
+# Verify:
+#   kubectl get polr -A
+#   kubectl get cpolr
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kaaval
+
+---
+# ServiceAccount the CronJob Pod runs as.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kaaval-scanner
+  namespace: kaaval
+
+---
+# Read-only access to RBAC objects cluster-wide (same minimal role documented
+# in docs/ci-integration.md — narrow enough that Kaaval would not flag it).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaaval-scanner-reader
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "clusterroles", "rolebindings", "clusterrolebindings"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kaaval-scanner-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kaaval-scanner-reader
+subjects:
+  - kind: ServiceAccount
+    name: kaaval-scanner
+    namespace: kaaval
+
+---
+# Write access to PolicyReport / ClusterPolicyReport so the Job can apply
+# findings back into the cluster. Scoped to the policy-report API group only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaaval-policyreport-writer
+rules:
+  - apiGroups: ["wgpolicyk8s.io"]
+    resources: ["policyreports", "clusterpolicyreports"]
+    verbs: ["get", "list", "create", "update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kaaval-policyreport-writer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kaaval-policyreport-writer
+subjects:
+  - kind: ServiceAccount
+    name: kaaval-scanner
+    namespace: kaaval
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kaaval-rbac-scan
+  namespace: kaaval
+  labels:
+    app.kubernetes.io/name: kaaval
+    app.kubernetes.io/component: rbac-scanner
+spec:
+  # Run daily at 02:00 UTC. Adjust to fit your maintenance window.
+  schedule: "0 2 * * *"
+  # Keep the last 3 successful and 1 failed Job for log inspection.
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  # Do not start a new run if the previous one is still going.
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      # Retry once on transient failures (e.g. API server blip).
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: kaaval
+            app.kubernetes.io/component: rbac-scanner
+        spec:
+          serviceAccountName: kaaval-scanner
+          restartPolicy: Never
+
+          # ── Security context ────────────────────────────────────────────
+          # Run as a non-root user; read-only root filesystem prevents any
+          # accidental writes to the container layer.
+          #
+          # SELinux hosts (Fedora, RHEL, CentOS Stream): the default
+          # SELinux policy confines containers. No extra securityContext
+          # fields are required here because the Pod does not mount host
+          # paths — the ServiceAccount token is projected automatically by
+          # Kubernetes and the SELinux label on that tmpfs is set by the
+          # kubelet. If you see PermissionError on token reads, set
+          #   seccompProfile: {type: RuntimeDefault}
+          # and ensure your node's kubelet version is >= 1.25.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534   # nobody
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+
+          # Phase 1: kaaval scans in-cluster RBAC and writes PolicyReport
+          # YAML to a shared emptyDir volume. The scanner image stays
+          # read-only and needs no kubectl.
+          initContainers:
+            - name: kaaval-scan
+              image: ghcr.io/kaaval/kaaval:edge
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "Starting Kaaval RBAC scan at $(date -u)"
+                  python -m app.cli scan rbac --output policyreport \
+                    > /report/policyreport.yaml
+                  echo "Scan written — $(wc -l < /report/policyreport.yaml) lines"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "256Mi"
+              volumeMounts:
+                - name: report
+                  mountPath: /report
+                - name: tmp
+                  mountPath: /tmp
+
+          # Phase 2: kubectl applies the PolicyReport documents the scanner
+          # emitted. bitnami/kubectl is a minimal image containing only
+          # kubectl — no shell, no extra tooling needed.
+          containers:
+            - name: kubectl-apply
+              image: rancher/kubectl:v1.31.0
+              imagePullPolicy: IfNotPresent
+              command:
+                - kubectl
+                - apply
+                - -f
+                - /report/policyreport.yaml
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "32Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "64Mi"
+              volumeMounts:
+                - name: report
+                  mountPath: /report
+
+          volumes:
+            - name: report
+              emptyDir: {}
+            - name: tmp
+              emptyDir: {}

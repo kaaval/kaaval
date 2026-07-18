@@ -256,3 +256,66 @@ SRE alerting on *new* findings only, and a Helm chart for one-line install.
     sarif_file: results.sarif
   
 \`\`\`
+## Scheduled in-cluster scans (CronJob)
+
+For continuous posture monitoring, deploy the CronJob manifest under `deploy/`
+to run the headless CLI on a schedule and publish findings as PolicyReport
+documents directly into your cluster.
+
+### Deploy
+
+```bash
+kubectl apply -f deploy/cronjob.yaml
+```
+
+This creates the `kaaval` namespace, a `kaaval-scanner` ServiceAccount with
+a minimal read-only `ClusterRole` for RBAC objects, a `ClusterRole` with
+write access to `policyreports`/`clusterpolicyreports`, and the CronJob
+itself (scheduled daily at 02:00 UTC by default — edit `spec.schedule` to
+taste).
+
+### Trigger once (for testing)
+
+```bash
+kubectl create job --from=cronjob/kaaval-rbac-scan kaaval-rbac-scan-manual \
+    -n kaaval
+```
+
+Watch it complete:
+
+```bash
+kubectl logs -n kaaval -l app.kubernetes.io/component=rbac-scanner -f
+```
+
+### Verify
+
+```bash
+kubectl get polr -A      # namespaced findings
+kubectl get cpolr        # cluster-scoped findings
+```
+
+Fresh `PolicyReport` and `ClusterPolicyReport` objects appear under
+`source: Kaaval`. If [policy-reporter](https://kyverno.github.io/policy-reporter/)
+is installed, Kaaval findings show up in its UI alongside Kyverno and Falco
+results automatically.
+
+### Security context
+
+The Pod runs as `nobody` (uid 65534), with a read-only root filesystem,
+all Linux capabilities dropped, and `allowPrivilegeEscalation: false`. A
+writable `emptyDir` is mounted at `/tmp` for Python's temporary files.
+
+**SELinux hosts (Fedora, RHEL, CentOS Stream):** no extra volume flags are
+needed because the Pod uses no host-path mounts — the ServiceAccount token
+is a projected volume managed by the kubelet, which sets the correct SELinux
+label automatically. If you see `PermissionError` on token reads, ensure
+your kubelet version is ≥ 1.25 and the `seccompProfile: RuntimeDefault` in
+the manifest is supported by your runtime.
+
+### Customising the schedule and gate
+
+Edit `spec.schedule` in `deploy/cronjob.yaml` for a different cadence, or
+add `--fail-on-severity HIGH` / `--fail-on-score 20` to the `python -m app.cli`
+command to make the Job exit 1 (and fail the CronJob run) when findings
+breach your threshold — useful for alerting via `kubectl get jobs` or a
+monitoring stack watching Job failure events.
