@@ -1,9 +1,9 @@
 version: "3.9"
 
 # ── Kaaval — self-hosted deployment ─────────────────────────────────────────────
-# Usage:
-#   cp .env.example .env          # fill in your secrets
-#   docker compose up -d
+# Usage (from the repo root):
+#   cp .env.example deploy/.env   # fill in your secrets
+#   cd deploy && docker compose up -d
 #
 # Optional services (ClickHouse, OTel Collector) are disabled by default.
 # Enable them by running: docker compose --profile observability up -d
@@ -42,8 +42,6 @@ services:
       KAAVAL_SECRET_KEY: ${KAAVAL_SECRET_KEY:-change_me_in_prod}
       KAAVAL_REFRESH_SECRET_KEY: ${KAAVAL_REFRESH_SECRET_KEY:-change_me_refresh_in_prod}
       KAAVAL_ADMIN_PASSWORD: ${KAAVAL_ADMIN_PASSWORD:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-mock}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-mock}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       EXTENSIONS_DIR: /app/extensions/integrations
     volumes:
