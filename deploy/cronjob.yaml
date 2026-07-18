@@ -140,7 +140,7 @@ spec:
           # read-only and needs no kubectl.
           initContainers:
             - name: kaaval-scan
-              image: ghcr.io/kaaval/kaaval:latest
+              image: ghcr.io/kaaval/kaaval:edge
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh
@@ -174,7 +174,7 @@ spec:
           # kubectl — no shell, no extra tooling needed.
           containers:
             - name: kubectl-apply
-              image: bitnami/kubectl:latest
+              image: rancher/kubectl:v1.31.0
               imagePullPolicy: IfNotPresent
               command:
                 - kubectl
