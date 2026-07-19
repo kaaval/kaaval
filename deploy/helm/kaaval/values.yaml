@@ -1,0 +1,123 @@
+# Default values for kaaval
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  # Global image pull secrets
+  imagePullSecrets: []
+
+# Control Plane (FastAPI service)
+controlPlane:
+  name: control-plane
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/kaaval/control-plane
+    pullPolicy: IfNotPresent
+    tag: ""
+
+  imagePullSecrets: []
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+  env: []
+  envFrom: []
+
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+
+# Secrets (generated if not provided)
+secrets:
+  databaseUrl: ""
+  adminPassword: ""
+  secretKey: ""
+  refreshSecretKey: ""
+
+# Kaaval application configuration
+kaaval:
+  cveFeeds:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+
+  rbac:
+    scanInterval: "1h"
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+
+  auditLog:
+    enabled: false
+    path: "/var/log/kubernetes/audit.log"
+    schedule: "0 */6 * * *"  # Every 6 hours
+
+# PostgreSQL dependency
+postgresql:
+  enabled: true
+  auth:
+    database: kaaval
+    username: kaaval
+    password: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+# Redis dependency
+redis:
+  enabled: true
+  auth:
+    enabled: false
+    password: ""
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+# Ingress
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: kaaval.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: kaaval-tls
+  #    hosts:
+  #      - kaaval.local
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC
+rbac:
+  create: true
