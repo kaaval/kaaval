@@ -10,6 +10,7 @@ import yaml
 
 import pytest
 
+from app import cli
 from app.cli import build_graph_from_manifests, load_context, main
 
 RISKY_MANIFESTS = """
@@ -153,6 +154,76 @@ def test_context_file_loading_and_validation(tmp_path):
 
     assert context["environment"] == "dev"
     assert context["_fail_on_score"] == 12
+
+
+def test_doctor_all_green(monkeypatch, capsys):
+    report = {
+        "status": "ok",
+        "checks": [
+            {
+                "name": "postgres",
+                "ok": True,
+                "required": True,
+                "detail": "reachable at postgresql://kaaval:***@postgres/kaaval_db",
+            },
+            {
+                "name": "cve-feeds",
+                "ok": True,
+                "required": False,
+                "detail": "2 feed(s) enabled, newest refresh 2026-07-18T12:00:00Z",
+            },
+            {
+                "name": "kubernetes",
+                "ok": True,
+                "required": False,
+                "detail": "local kubeconfig",
+            },
+        ],
+    }
+    monkeypatch.setattr(cli, "run_deep_checks", lambda engine, session_factory: report)
+
+    assert main(["doctor"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "✓ postgres: reachable at postgresql://kaaval:***@postgres/kaaval_db",
+        "✓ cve-feeds: 2 feed(s) enabled, newest refresh 2026-07-18T12:00:00Z",
+        "✓ kubernetes: local kubeconfig",
+    ]
+
+
+def test_doctor_postgres_down_exits_2_with_fix(monkeypatch, capsys):
+    fix = "Start the bundled database: `cd deploy && docker compose up -d postgres`."
+    report = {
+        "status": "error",
+        "checks": [
+            {
+                "name": "postgres",
+                "ok": False,
+                "required": True,
+                "detail": "cannot connect to postgresql://kaaval:***@postgres/kaaval_db (OperationalError)",
+                "fix": fix,
+            },
+            {
+                "name": "cve-feeds",
+                "ok": False,
+                "required": False,
+                "detail": "skipped — database unreachable",
+                "fix": fix,
+            },
+            {
+                "name": "kubernetes",
+                "ok": True,
+                "required": False,
+                "detail": "in-cluster ServiceAccount credentials",
+            },
+        ],
+    }
+    monkeypatch.setattr(cli, "run_deep_checks", lambda engine, session_factory: report)
+
+    assert main(["doctor"]) == 2
+    output = capsys.readouterr().out
+    assert "✗ postgres:" in output
+    assert "docker compose up -d postgres" in output
+    assert "✓ kubernetes: in-cluster ServiceAccount credentials" in output
 
 
 def test_invalid_context_value_is_a_usage_error(tmp_path):

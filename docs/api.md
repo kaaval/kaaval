@@ -128,3 +128,9 @@ plus `role`, `binding`, `subjects`, and CIS v1.12.0 `benchmark_refs`:
 
 The CLI (`python -m app.cli scan rbac ...`) runs the same rule engine with
 no server or DB at all — see [ci-integration.md](ci-integration.md).
+
+`python -m app.cli doctor` runs the same dependency preflights as
+`GET /health?deep=1` without starting the API. It prints one line for each of
+`postgres`, `cve-feeds`, and `kubernetes`, including the fix text for failures.
+Optional failures are reported without failing the command; a required failure
+returns exit code `2`.
