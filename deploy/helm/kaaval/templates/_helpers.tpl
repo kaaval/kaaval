@@ -52,7 +52,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Control-plane specific labels
 */}}
 {{- define "kaaval.controlPlane.labels" -}}
-{{- include "kaaval.selectorLabels" . | indent 4 }}
+{{ include "kaaval.selectorLabels" . }}
 app.kubernetes.io/component: control-plane
 {{- end }}
 

@@ -3,12 +3,12 @@ kind: ConfigMap
 metadata:
   name: {{ include "kaaval.controlPlane.fullname" . }}-config
   labels:
-{{ include "kaaval.controlPlane.labels" . | indent 4 }}
+    {{- include "kaaval.controlPlane.labels" . | nindent 4 }}
 data:
   KAAVAL_CVE_FEEDS_ENABLED: "{{ .Values.kaaval.cveFeeds.enabled }}"
   KAAVAL_CVE_FEEDS_SCHEDULE: "{{ .Values.kaaval.cveFeeds.schedule }}"
   KAAVAL_RBAC_SCAN_INTERVAL: "{{ .Values.kaaval.rbac.scanInterval }}"
-  KAAVAL_RBAC_EXCLUDED_NAMESPACES: "{{ .Values.kaaval.rbac.excludedNamespaces | join \",\" }}"
+  KAAVAL_RBAC_EXCLUDED_NAMESPACES: "{{ join "," .Values.kaaval.rbac.excludedNamespaces }}"
   KAAVAL_AUDIT_LOG_ENABLED: "{{ .Values.kaaval.auditLog.enabled }}"
   KAAVAL_AUDIT_LOG_PATH: "{{ .Values.kaaval.auditLog.path }}"
   KAAVAL_AUDIT_LOG_SCHEDULE: "{{ .Values.kaaval.auditLog.schedule }}"
