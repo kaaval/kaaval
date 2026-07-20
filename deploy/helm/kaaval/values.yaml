@@ -13,7 +13,7 @@ postgresql:
     database: kaaval_db
     username: kaaval
     password: ""           # POSTGRES_PASSWORD (REQUIRED in production)
-    existingSecret: ""     # or reference a secret with keys: postgresql-password
+    existingSecret: ""
   primary:
     persistence:
       enabled: true
@@ -28,7 +28,7 @@ postgresql:
 
 # Control Plane (FastAPI)
 # Maps to: KAAVAL_SECRET_KEY, KAAVAL_REFRESH_SECRET_KEY, KAAVAL_ADMIN_PASSWORD,
-#          FRONTEND_URL, DATABASE_URL (derived from postgresql)
+#          FRONTEND_URL, ALLOWED_ORIGINS, DATABASE_URL (derived from postgresql)
 controlPlane:
   replicaCount: 1
   image:
@@ -40,8 +40,8 @@ controlPlane:
     type: ClusterIP
     port: 8000
   resources: {}
-  env: {}
-  envFrom: []
+  env: {}          # safe to merge into templates; empty = no extra ConfigMap
+  envFrom: []      # #96 will wire the Secret here
   livenessProbe:
     httpGet:
       path: /health
@@ -72,7 +72,7 @@ dashboard:
     type: ClusterIP
     port: 3000
   resources: {}
-  env: {}
+  env: {}          # empty map, not null
   nodeSelector: {}
   affinity: {}
   tolerations: []
@@ -110,10 +110,11 @@ rbac:
 networkPolicy:
   enabled: false
 
-# PodDisruptionBudget
+# PodDisruptionBudget - DISABLED by default to avoid deadlock with replicaCount=1
+# When enabling with replicaCount=1, set minAvailable: 0 or use replicaCount >= 2
 pdb:
-  enabled: true
-  minAvailable: 1
+  enabled: false
+  minAvailable: 0
 
 # ServiceMonitor for Prometheus
 serviceMonitor:

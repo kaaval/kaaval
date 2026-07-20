@@ -20,9 +20,9 @@ jobs:
       run:
         working-directory: deploy/helm/kaaval
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - name: Set up Helm
-        uses: azure/setup-helm@5119fcb9089d432be92e2993f18951c0b8c3644a
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
         with:
           version: v3.14.4
       - name: Add bitnami repo
