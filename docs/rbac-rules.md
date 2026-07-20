@@ -28,6 +28,20 @@ classification × compliance scope × exposure). Benchmark citations are to the
 | `cluster_admin_binding` | cluster-admin (or wildcard-equivalent role) bound to a **broad identity** | CRITICAL | CIS 5.1.1 (+5.1.7 when the subject is `system:masters`) |
 | `segmentation_violation` | a namespaced `ServiceAccount` bound cluster-wide via `ClusterRoleBinding`, or a `RoleBinding` granting a SA from a different namespace (cross-namespace reach) | HIGH | NIST SP 800-207A (Zero Trust micro-segmentation), Kubernetes RBAC Good Practices (no CIS 5.1 control covers namespace isolation directly) |
 
+### Combination-escalation rules (`control-plane/app/effective_access.py`)
+
+These predicates operate on the **aggregated** rule set of a subject — i.e. all
+rules flattened across every Role/ClusterRole the subject is bound to.  Each
+half alone is not enough to fire the rule; both halves must be held
+simultaneously (possibly via two different roles).
+
+| `rule_type` | Trigger (aggregate across all roles bound to the subject) | Base severity | Path |
+|---|---|---|---|
+| `combo_role_escalation` | `create` on `roles`/`clusterroles` **AND** `escalate` verb | CRITICAL | Create an arbitrary role, then use `escalate` to climb into it — full privilege escalation without touching existing roles |
+| `combo_bind_escalation` | `create` on `rolebindings`/`clusterrolebindings` **AND** `bind` verb | CRITICAL | Bind any existing role (including `cluster-admin`) to any identity — privilege escalation via binding |
+| `impersonation_grant` | `impersonate` verb on `users`, `groups`, or `serviceaccounts` | CRITICAL | Act as any other identity, bypassing all RBAC controls that target those identities |
+| `privileged_pod_creation` | `create` on `pods` **AND** the subject's namespace contains at least one non-default ServiceAccount bound to a privileged role | HIGH | Mount the privileged SA's token in a new pod and inherit its permissions without ever being directly bound to it |
+
 Notes on the less obvious ones:
 
 - **`exec_attach_grant`** — exec into a pod is code execution inside the
@@ -39,6 +53,23 @@ Notes on the less obvious ones:
   exceed their own grants, `bind` lets them bind roles they don't hold,
   `impersonate` lets them act as another identity. Each is a full
   privilege-escalation primitive on its own.
+- **`combo_role_escalation`** — `escalate` alone is flagged by
+  `privilege_escalation_verbs`, but pairing it with `create roles` makes the
+  path concrete: the attacker writes a role with whatever verbs they need and
+  then escalates into it, with no dependency on existing role content.
+- **`combo_bind_escalation`** — `bind` alone is similarly flagged by
+  `privilege_escalation_verbs`.  Combined with rolebinding create it becomes a
+  concrete path: point a new binding at `cluster-admin` and you're done.
+- **`impersonation_grant`** — fires on the aggregate (rather than single-role)
+  rule set; listed here because it belongs to the same evaluation pass.  The
+  resource check (`users`, `groups`, `serviceaccounts`, `userextras`) ensures
+  the verb is meaningful — `impersonate` on `pods` is silently inert in the
+  API server and not flagged.
+- **`privileged_pod_creation`** — "privileged SA" means a non-`default`
+  ServiceAccount bound to a role that holds any of: wildcard permissions,
+  secret read, escalation verbs (`escalate`/`bind`/`impersonate`), or
+  exec/attach access.  The `default` SA is excluded because it is held by
+  every pod that does not opt out — its presence is noise, not signal.
 - **`workload_creation`** — creating a pod implicitly reaches every Secret,
   ConfigMap, and ServiceAccount that can be mounted in that namespace.
   MEDIUM because it's also the most legitimately-held permission (CI
