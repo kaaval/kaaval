@@ -12,9 +12,9 @@
     "axios": "^1.13.4",
     "dagre": "^0.8.5",
     "lucide-react": "^1.25.0",
-    "next": "16.2.10",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "next": "16.2.11",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
@@ -25,8 +25,8 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.5.4",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "postcss": "^8.5.19",
+    "eslint-config-next": "16.2.11",
+    "postcss": "^8.5.23",
     "tailwindcss": "^4.1.18",
     "typescript": "^5"
   }
