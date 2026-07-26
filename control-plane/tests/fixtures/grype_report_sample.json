@@ -1,0 +1,149 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2023-0286",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2023-0286",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "cvss": [
+          {
+            "source": "nvd:cpe",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H",
+            "metrics": { "baseScore": 7.4, "exploitabilityScore": 2.2, "impactScore": 5.2 }
+          },
+          {
+            "source": "redhat",
+            "type": "Secondary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H",
+            "metrics": { "baseScore": 7.4 }
+          }
+        ],
+        "fix": {
+          "versions": ["1.1.1n-0+deb11u5"],
+          "state": "fixed"
+        },
+        "description": "There is a type confusion vulnerability relating to X.400 address processing inside an X.509 GeneralName.",
+        "urls": [
+          "https://nvd.nist.gov/vuln/detail/CVE-2023-0286",
+          "https://www.openssl.org/news/secadv/20230207.txt",
+          "https://security.netapp.com/advisory/ntap-20230217-0006/",
+          "https://access.redhat.com/security/cve/CVE-2023-0286"
+        ]
+      },
+      "artifact": {
+        "name": "openssl",
+        "version": "1.1.1n-0+deb11u4",
+        "type": "deb",
+        "locations": [
+          { "path": "/usr/lib/x86_64-linux-gnu/libssl.so.1.1" }
+        ]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-3602",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-3602",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "cvss": [
+          {
+            "source": "nvd:cpe",
+            "type": "Primary",
+            "version": "3.1",
+            "metrics": { "baseScore": 9.8 }
+          }
+        ],
+        "fix": {
+          "versions": ["1.1.1n-0+deb11u5"],
+          "state": "fixed"
+        },
+        "description": "A buffer overrun can be triggered in X.509 certificate verification, specifically in name constraint checking.",
+        "urls": ["https://nvd.nist.gov/vuln/detail/CVE-2022-3602"]
+      },
+      "artifact": {
+        "name": "openssl",
+        "version": "1.1.1n-0+deb11u4",
+        "type": "deb",
+        "locations": [
+          { "path": "/usr/lib/x86_64-linux-gnu/libssl.so.1.1" }
+        ]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-1234",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-1234",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "cvss": [],
+        "fix": { "versions": [], "state": "not-fixed" },
+        "description": "A vulnerability with no fixed version published yet and no CVSS score available from any vendor.",
+        "urls": []
+      },
+      "artifact": {
+        "name": "curl",
+        "version": "7.74.0-1.3+deb11u7",
+        "type": "deb",
+        "locations": [{ "path": "/usr/bin/curl" }]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2021-9999",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2021-9999",
+        "namespace": "nvd:cpe",
+        "severity": "Unknown",
+        "cvss": [],
+        "fix": { "versions": ["1:1.2.11.dfsg-2+deb11u3"], "state": "fixed" },
+        "description": "Lower-case-in-source severity from the scanner should be normalized to upper-case.",
+        "urls": []
+      },
+      "artifact": {
+        "name": "zlib",
+        "version": "1:1.2.11.dfsg-2+deb11u2",
+        "type": "deb",
+        "locations": [{ "path": "/usr/lib/x86_64-linux-gnu/libz.so.1" }]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2023-0286",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2023-0286",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "cvss": [{ "source": "nvd:cpe", "metrics": { "baseScore": 7.4 } }],
+        "fix": { "versions": ["1.1.1n-0+deb11u5"], "state": "fixed" },
+        "description": "Duplicate match for the same CVE/image/component reported via a second location/layer — must be deduped to a single finding.",
+        "urls": []
+      },
+      "artifact": {
+        "name": "openssl",
+        "version": "1.1.1n-0+deb11u4",
+        "type": "deb",
+        "locations": [
+          { "path": "/lib/x86_64-linux-gnu/libssl.so.1.1" }
+        ]
+      }
+    }
+  ],
+  "source": {
+    "type": "image",
+    "target": {
+      "userInput": "myregistry.io/payments-api:1.4.2",
+      "imageID": "sha256:abc123",
+      "manifestDigest": "sha256:def456"
+    }
+  },
+  "distro": {
+    "name": "debian",
+    "version": "11.6"
+  },
+  "descriptor": {
+    "name": "grype",
+    "version": "0.79.0"
+  }
+}
