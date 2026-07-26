@@ -1,0 +1,86 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "myregistry.io/payments-api:1.4.2",
+  "ArtifactType": "container_image",
+  "Results": [
+    {
+      "Target": "myregistry.io/payments-api:1.4.2 (debian 11.6)",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2023-0286",
+          "PkgName": "openssl",
+          "InstalledVersion": "1.1.1n-0+deb11u4",
+          "FixedVersion": "1.1.1n-0+deb11u5",
+          "Severity": "HIGH",
+          "Title": "openssl: X.400 address type confusion in X.400 GeneralName",
+          "Description": "There is a type confusion vulnerability relating to X.400 address processing inside an X.509 GeneralName. X.400 addresses were parsed as an ASN1_STRING but the public structure definition for GENERAL_NAME incorrectly specified the type of the x400Address field as ASN1_TYPE.",
+          "References": [
+            "https://nvd.nist.gov/vuln/detail/CVE-2023-0286",
+            "https://www.openssl.org/news/secadv/20230207.txt",
+            "https://security.netapp.com/advisory/ntap-20230217-0006/",
+            "https://access.redhat.com/security/cve/CVE-2023-0286"
+          ],
+          "PublishedDate": "2023-02-07T16:15:00Z",
+          "CVSS": {
+            "nvd": { "V2Score": 4.3, "V3Score": 7.4 },
+            "redhat": { "V3Score": 7.4 }
+          }
+        },
+        {
+          "VulnerabilityID": "CVE-2022-3602",
+          "PkgName": "openssl",
+          "InstalledVersion": "1.1.1n-0+deb11u4",
+          "FixedVersion": "1.1.1n-0+deb11u5",
+          "Severity": "HIGH",
+          "Title": "openssl: X.509 Email Address 4-byte Buffer Overflow",
+          "Description": "A buffer overrun can be triggered in X.509 certificate verification, specifically in name constraint checking.",
+          "References": [
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-3602"
+          ],
+          "PublishedDate": "2022-11-01T00:00:00Z",
+          "CVSS": {
+            "nvd": { "V3Score": 9.8 }
+          }
+        },
+        {
+          "VulnerabilityID": "CVE-2022-1234",
+          "PkgName": "curl",
+          "InstalledVersion": "7.74.0-1.3+deb11u7",
+          "Severity": "MEDIUM",
+          "Description": "A vulnerability with no fixed version published yet and no CVSS score available from any vendor.",
+          "References": []
+        },
+        {
+          "VulnerabilityID": "CVE-2021-9999",
+          "PkgName": "zlib",
+          "InstalledVersion": "1:1.2.11.dfsg-2+deb11u2",
+          "FixedVersion": "1:1.2.11.dfsg-2+deb11u3",
+          "Severity": "unknown",
+          "Description": "Lower-case severity from the scanner should be normalized to upper-case.",
+          "CVSS": {}
+        }
+      ]
+    },
+    {
+      "Target": "myregistry.io/payments-api:1.4.2 (node-pkg)",
+      "Class": "lang-pkgs",
+      "Type": "node-pkg",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2023-0286",
+          "PkgName": "openssl",
+          "InstalledVersion": "1.1.1n-0+deb11u4",
+          "FixedVersion": "1.1.1n-0+deb11u5",
+          "Severity": "HIGH",
+          "Title": "openssl: X.400 address type confusion in X.400 GeneralName",
+          "Description": "Duplicate entry for the same CVE/image/component reported under a second Results[] target — must be deduped to a single finding.",
+          "CVSS": {
+            "nvd": { "V3Score": 7.4 }
+          }
+        }
+      ]
+    }
+  ]
+}
