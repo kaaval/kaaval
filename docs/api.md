@@ -108,6 +108,7 @@ a known gap from the v1.1.0 cleanup; the self-scan path is the primary one.
 | `POST /rbac/scan` | Scan live Roles/ClusterRoles/bindings ([rule catalog](rbac-rules.md)) |
 | `GET /rbac/scan/latest` | Most recent RBAC scan |
 | `GET /rbac/scan/latest/report.pdf` | Same scan as a PDF |
+| `GET /rbac/scan/diff` | Compare the two most recent scans — `added`, `resolved`, and `unchanged_count` |
 
 ```bash
 curl -s -X POST http://localhost:8000/rbac/scan -H "Authorization: Bearer $TOKEN" \
