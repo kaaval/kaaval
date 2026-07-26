@@ -45,6 +45,12 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "clusterroles", "rolebindings", "clusterrolebindings"]
     verbs: ["get", "list"]
+  # Inputs for the token_automount rule (CIS 5.1.6): the ServiceAccount's
+  # automount setting and any pod spec that overrides it. Read-only — without
+  # these the rule silently finds nothing in live mode.
+  - apiGroups: [""]
+    resources: ["serviceaccounts", "pods"]
+    verbs: ["get", "list"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
