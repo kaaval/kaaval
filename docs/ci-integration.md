@@ -187,7 +187,7 @@ spec:
 ```
 
 Running in-cluster with a ServiceAccount needs only read access to RBAC
-objects:
+objects, plus ServiceAccounts and pods for the token-automount rule:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -198,10 +198,19 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "clusterroles", "rolebindings", "clusterrolebindings"]
     verbs: ["get", "list"]
+  # Inputs for the token_automount rule (CIS 5.1.6): the ServiceAccount's
+  # automount setting and any pod spec that overrides it.
+  - apiGroups: [""]
+    resources: ["serviceaccounts", "pods"]
+    verbs: ["get", "list"]
 ```
 
-(Yes — Kaaval's own scanner role is intentionally narrow enough that Kaaval
-would not flag it.)
+Kaaval scans its own scanner role, and the honest result is one finding, by
+design: `segmentation_violation` (HIGH) on `kaaval-scanner-reader`, because a
+namespaced ServiceAccount is granted cluster scope through a
+ClusterRoleBinding. That is unavoidable for a cluster-wide read — the whole
+point of the rule is to make you justify it rather than hide it. Every verb
+here is read-only, and no rule fires on the grants themselves.
 
 ## Consuming the JSON in other tooling
 
