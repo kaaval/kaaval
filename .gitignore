@@ -44,3 +44,7 @@ Thumbs.db
 # Claude Code local settings
 .claude/
 .coverage
+
+# Helm subcharts downloaded by `helm dependency update` — regenerated from
+# Chart.yaml, never committed (the CI lint job fetches them fresh).
+deploy/helm/*/charts/
