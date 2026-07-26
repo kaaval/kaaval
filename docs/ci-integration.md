@@ -55,7 +55,7 @@ Tags: `latest` (newest release), `vX.Y.Z` (pinned release), `edge` (tip of main)
 | `--context-file PATH` | `kaaval.yaml` risk context (see below). Without it, defaults apply (production/internal/internal, no compliance scope) and a warning is printed |
 | `--fail-on-score N` | Exit 1 if any finding's contextual score ≥ N |
 | `--fail-on-severity SEV` | Exit 1 if any finding is at/above SEV (`LOW`/`MEDIUM`/`HIGH`/`CRITICAL`, case-insensitive) |
-| `--output table\|json\|policyreport` | Human table (default), full JSON including remediation objects and score factors, or Kubernetes [PolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report) documents |
+| `--output table\|json\|sarif\|junit\|policyreport` | Human table (default), full JSON including remediation objects and score factors, SARIF for the GitHub Security tab (see below), JUnit XML for GitLab/Jenkins test panes, or Kubernetes [PolicyReport](https://github.com/kubernetes-sigs/wg-policy-prototypes/tree/master/policy-report) documents |
 
 ### Exit codes
 
@@ -236,9 +236,10 @@ policy-reporter installed, Kaaval findings appear in its UI and API under
 `source: Kaaval`, side by side with Kyverno and Falco results, and can fan out
 to its notification targets (Slack, Teams, webhooks).
 
-Planned next (see the roadmap): SARIF output for the GitHub Security tab,
-JUnit XML for GitLab/Jenkins test panes, Prometheus metrics + scan-diff for
-SRE alerting on *new* findings only, and a Helm chart for one-line install.
+Planned next (see the roadmap): Prometheus metrics, and a Helm chart for
+one-line install. SARIF (`--output sarif`), JUnit XML (`--output junit`), and
+the RBAC scan-diff endpoint (`GET /rbac/scan/diff`, for alerting on *new*
+findings only) have since shipped.
 
 ## GitHub Actions — SARIF upload to Security tab
 

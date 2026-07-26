@@ -32,8 +32,8 @@ own — findings enter and leave through standard interfaces:
 ┌───────────────────────┐                     ┌───────────────────────────┐
 │ live cluster (RO API) │──┐               ┌─▶│ PolicyReport CRDs ────────│▶ policy-reporter,
 │ manifests dir (CLI)   │──┤               │  │ (wgpolicyk8s.io/v1alpha2) │  Kyverno/Falco/Trivy
-│ K8s CVE feed/OSV/NVD  │──┤  ┌─────────┐  ├─▶│ SARIF (#1, in review) ────│▶ GitHub Security tab
-│ Trivy JSON (#5) ──────│──┼─▶│ scoring │──┼─▶│ JUnit XML (#2) ───────────│▶ GitLab/Jenkins panes
+│ K8s CVE feed/OSV/NVD  │──┤  ┌─────────┐  ├─▶│ SARIF ────────────────────│▶ GitHub Security tab
+│ Trivy JSON (#5) ──────│──┼─▶│ scoring │──┼─▶│ JUnit XML ────────────────│▶ GitLab/Jenkins panes
 │ Grype JSON (#6) ──────│──┤  │ + reme- │  ├─▶│ JSON / table / PDF        │
 │ Kyverno PolicyReports │──┘  │ diation │  ├─▶│ Prometheus /metrics (#3)  │
 │ (#35) ────────────────│     │  core   │  └─▶│ dashboard (Next.js)       │
