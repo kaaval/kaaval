@@ -35,16 +35,16 @@ def test_issue7_token_automount_severities():
         (f.get("workload") or f["service_account"])["name"]: f["severity"]
         for f in automount_findings
     }
-    assert set(severity_by_name) == {"default", "token-happy", "override-pod", "override-deploy"}
+    assert set(severity_by_name) == {"default", "token-happy", "override-pod", "override-deploy"}, severity_by_name
     assert severity_by_name == {
         "default": "MEDIUM",
         "token-happy": "LOW",
         "override-pod": "MEDIUM",
         "override-deploy": "MEDIUM",
-    }
+    }, severity_by_name
 
     kinds = {(f.get("workload") or {}).get("kind") for f in automount_findings if f.get("workload")}
-    assert kinds == {"Pod", "Deployment"}
+    assert kinds == {"Pod", "Deployment"}, kinds
 
 
 @pytest.mark.parametrize("output_mode", ["table", "json", "sarif", "junit", "policyreport"])
