@@ -33,6 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pod templates of Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs and
   CronJobs in `--manifests` mode. Contributed by
   [@donkk11](https://github.com/donkk11) (#108).
+- **Combination-escalation predicates** (`app/effective_access.py`): the Effective
+  Access Graph foundation. Aggregates every Role/ClusterRole rule a subject holds
+  across all its bindings, then evaluates four predicates that only fire on the
+  *combination* — `combo_role_escalation` (create roles + `escalate`),
+  `combo_bind_escalation` (create rolebindings + `bind`), `impersonation_grant`
+  (`impersonate` on users/groups/serviceaccounts), and `privileged_pod_creation`
+  (create pods + a privileged ServiceAccount in the same namespace). Each half is
+  harmless alone, so the per-role scan misses all four. Exposed as
+  `POST /rbac/combo-scan`. Contributed by
+  [@Maqbool61](https://github.com/Maqbool61) (#105).
 - **Helm chart skeleton** (`deploy/helm/kaaval`): `Chart.yaml` with a real
   `postgresql` subchart dependency, a fully annotated `values.yaml` mapping each value
   to its `.env.example` key, and a `helm lint` + `helm template` CI job on
