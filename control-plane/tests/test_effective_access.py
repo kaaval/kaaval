@@ -151,6 +151,32 @@ class TestComboRoleEscalation:
 
         assert not any(f["rule_type"] == "combo_role_escalation" for f in findings)
 
+    def test_combo_fires_on_roles_resource_with_missing_api_groups_key(self):
+        """
+        Regression (PR #131 review): missing api_groups is unspecified, not
+        "core group only" — it must not silently disable the RBAC-group
+        predicates. A rule granting create on roles/clusterroles with no
+        api_groups key, paired with escalate, must still fire
+        combo_role_escalation.
+        """
+        role_a = _cluster_role("legacy-role-creator", [
+            {"verbs": ["create"], "resources": ["roles", "clusterroles"]},
+        ])
+        role_b = _cluster_role("escalator2", [
+            {"verbs": ["escalate"], "resources": ["clusterroles"], "api_groups": ["rbac.authorization.k8s.io"]},
+        ])
+        graph = _graph(
+            cluster_roles=[role_a, role_b],
+            cluster_role_bindings=[
+                _crb("binding-a2", "legacy-role-creator", _SUBJECT),
+                _crb("binding-b2", "escalator2", _SUBJECT),
+            ],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert any(f["rule_type"] == "combo_role_escalation" for f in findings)
+
     def test_combo_finding_has_standard_shape(self):
         """The finding dict carries all fields the scoring engine expects."""
         role_a = _cluster_role("role-creator", [

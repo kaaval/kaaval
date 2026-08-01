@@ -43,8 +43,13 @@ def _has_resource(rule: dict, groups: set[str], *resources: str) -> bool:
     if not (bool(rule_resources & set(resources)) or "*" in rule_resources):
         return False
 
-    # Missing/empty api_groups means the core group (""), not "matches nothing".
-    rule_groups = set(rule.get("api_groups") or [""])
+    rule_groups = rule.get("api_groups")
+    if not rule_groups:
+        # Absent/empty api_groups is unspecified, not "core group only" — don't
+        # narrow on it. A scanner should resolve missing information toward
+        # reporting a possible finding, not toward silently dropping it.
+        return True
+    rule_groups = set(rule_groups)
     return bool(rule_groups & groups) or "*" in rule_groups
 
 
