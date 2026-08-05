@@ -38,9 +38,23 @@ def _has_verb(rule: dict, *verbs: str) -> bool:
     return bool(rule_verbs & set(verbs)) or "*" in rule_verbs
 
 
-def _has_resource(rule: dict, *resources: str) -> bool:
+def _has_resource(rule: dict, groups: set[str], *resources: str) -> bool:
     rule_resources = set(rule.get("resources") or [])
-    return bool(rule_resources & set(resources)) or "*" in rule_resources
+    if not (bool(rule_resources & set(resources)) or "*" in rule_resources):
+        return False
+
+    rule_groups = rule.get("api_groups")
+    if not rule_groups:
+        # Absent/empty api_groups is unspecified, not "core group only" — don't
+        # narrow on it. A scanner should resolve missing information toward
+        # reporting a possible finding, not toward silently dropping it.
+        return True
+    rule_groups = set(rule_groups)
+    return bool(rule_groups & groups) or "*" in rule_groups
+
+
+_RBAC_API_GROUP = {"rbac.authorization.k8s.io"}
+_CORE_API_GROUP = {""}
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +64,10 @@ def _has_resource(rule: dict, *resources: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def _can_create_roles(rules: list[dict]) -> bool:
-    return any(_has_resource(r, "roles", "clusterroles") and _has_verb(r, "create") for r in rules)
+    return any(
+        _has_resource(r, _RBAC_API_GROUP, "roles", "clusterroles") and _has_verb(r, "create")
+        for r in rules
+    )
 
 
 def _can_escalate(rules: list[dict]) -> bool:
@@ -79,7 +96,8 @@ def _combo_role_escalation(rules: list[dict]) -> Optional[dict]:
 
 def _can_create_bindings(rules: list[dict]) -> bool:
     return any(
-        _has_resource(r, "rolebindings", "clusterrolebindings") and _has_verb(r, "create")
+        _has_resource(r, _RBAC_API_GROUP, "rolebindings", "clusterrolebindings")
+        and _has_verb(r, "create")
         for r in rules
     )
 
@@ -115,7 +133,8 @@ _IMPERSONATABLE_RESOURCES = {"users", "groups", "serviceaccounts", "userextras"}
 
 def _can_impersonate(rules: list[dict]) -> bool:
     return any(
-        _has_verb(r, "impersonate") and _has_resource(r, *_IMPERSONATABLE_RESOURCES)
+        _has_verb(r, "impersonate")
+        and _has_resource(r, _CORE_API_GROUP, *_IMPERSONATABLE_RESOURCES)
         for r in rules
     )
 
@@ -145,7 +164,9 @@ def _impersonation_grant(rules: list[dict]) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 
 def _can_create_pods(rules: list[dict]) -> bool:
-    return any(_has_resource(r, "pods") and _has_verb(r, "create") for r in rules)
+    return any(
+        _has_resource(r, _CORE_API_GROUP, "pods") and _has_verb(r, "create") for r in rules
+    )
 
 
 def _privileged_pod_creation(

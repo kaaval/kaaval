@@ -126,6 +126,57 @@ class TestComboRoleEscalation:
 
         assert not any(f["rule_type"] == "combo_role_escalation" for f in findings)
 
+    def test_combo_does_not_fire_on_roles_resource_in_non_rbac_group(self):
+        """
+        Regression (issue #125): 'roles'/'clusterroles' only matter for this
+        escalation path in the rbac.authorization.k8s.io group. A CRD reusing
+        the resource name 'roles' in some unrelated group must not count as
+        create-roles here, even paired with an unrelated 'escalate' grant.
+        """
+        role_a = _cluster_role("crd-role-creator", [
+            {"verbs": ["create"], "resources": ["roles", "clusterroles"], "api_groups": ["example.com"]},
+        ])
+        role_b = _cluster_role("escalator", [
+            {"verbs": ["escalate"], "resources": ["clusterroles"], "api_groups": ["rbac.authorization.k8s.io"]},
+        ])
+        graph = _graph(
+            cluster_roles=[role_a, role_b],
+            cluster_role_bindings=[
+                _crb("binding-a", "crd-role-creator", _SUBJECT),
+                _crb("binding-b", "escalator", _SUBJECT),
+            ],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert not any(f["rule_type"] == "combo_role_escalation" for f in findings)
+
+    def test_combo_fires_on_roles_resource_with_missing_api_groups_key(self):
+        """
+        Regression (PR #131 review): missing api_groups is unspecified, not
+        "core group only" — it must not silently disable the RBAC-group
+        predicates. A rule granting create on roles/clusterroles with no
+        api_groups key, paired with escalate, must still fire
+        combo_role_escalation.
+        """
+        role_a = _cluster_role("legacy-role-creator", [
+            {"verbs": ["create"], "resources": ["roles", "clusterroles"]},
+        ])
+        role_b = _cluster_role("escalator2", [
+            {"verbs": ["escalate"], "resources": ["clusterroles"], "api_groups": ["rbac.authorization.k8s.io"]},
+        ])
+        graph = _graph(
+            cluster_roles=[role_a, role_b],
+            cluster_role_bindings=[
+                _crb("binding-a2", "legacy-role-creator", _SUBJECT),
+                _crb("binding-b2", "escalator2", _SUBJECT),
+            ],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert any(f["rule_type"] == "combo_role_escalation" for f in findings)
+
     def test_combo_finding_has_standard_shape(self):
         """The finding dict carries all fields the scoring engine expects."""
         role_a = _cluster_role("role-creator", [
@@ -310,6 +361,41 @@ class TestImpersonationGrant:
         findings = evaluate_combo_findings(graph, _CONTEXT)
 
         assert not any(f["rule_type"] == "impersonation_grant" for f in findings)
+
+    def test_combo_does_not_fire_on_impersonate_users_in_non_core_group(self):
+        """
+        Regression (issue #125): 'users' only means the escalation-relevant
+        identity resource in the core API group (""). A CRD that happens to
+        reuse the resource name 'users' in some unrelated group must not fire.
+        """
+        role = _cluster_role("crd-impersonator", [
+            {"verbs": ["impersonate"], "resources": ["users"], "api_groups": ["example.com"]},
+        ])
+        graph = _graph(
+            cluster_roles=[role],
+            cluster_role_bindings=[_crb("b", "crd-impersonator", _SUBJECT)],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert not any(f["rule_type"] == "impersonation_grant" for f in findings)
+
+    def test_combo_fires_on_impersonate_users_with_missing_api_groups_key(self):
+        """
+        Missing api_groups must be treated as the core group (""), not
+        'matches nothing' — existing/hand-built fixtures often omit it.
+        """
+        role = _cluster_role("legacy-impersonator", [
+            {"verbs": ["impersonate"], "resources": ["users"]},
+        ])
+        graph = _graph(
+            cluster_roles=[role],
+            cluster_role_bindings=[_crb("b", "legacy-impersonator", _SUBJECT)],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert any(f["rule_type"] == "impersonation_grant" for f in findings)
 
 
 # ---------------------------------------------------------------------------
