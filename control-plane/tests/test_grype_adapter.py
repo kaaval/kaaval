@@ -183,3 +183,10 @@ class TestGrypeAdapterParse:
             "source": {"target": {"userInput": "some/image:latest"}},
         }
         assert grype_adapter.parse(report) == []
+        
+    def test_cvss_v3_wins_over_v2_when_both_present(self, sample_report):
+        # CVE-2022-3602 fixture carries v2=10.0 and v3.1=9.8.
+        # Adapter must return 9.8 (v3 only), not 10.0 (v2 inflated).
+        findings = grype_adapter.parse(sample_report)
+        f = next(f for f in findings if f["cve_id"] == "CVE-2022-3602")
+        assert f["cvss_score"] == 9.8

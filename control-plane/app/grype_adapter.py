@@ -39,16 +39,23 @@ def _severity(raw: Optional[str]) -> str:
 
 def _best_cvss_score(vulnerability: dict) -> Optional[float]:
     """
-    Return the highest CVSS base score present across all entries in
-    vulnerability.cvss[], or None if no score is present. Grype's cvss
-    array can mix v2/v3 metrics from different sources; we take the max
-    baseScore across all of them, same spirit as Trivy's "highest V3Score
-    across vendors" rule.
+    Return the highest CVSS v3 base score present, or None if absent.
+
+    Grype's cvss array can mix v2/v3 metrics from different sources.
+    We skip v2 entries — v2 and v3 use different scales and must not
+    be compared directly (v2 inflates many scores vs v3).
+    Entries with no version key are included deliberately: under-reporting
+    a CVE score is worse than over-reporting for a scanner.
     """
     cvss_entries = vulnerability.get("cvss") or []
     scores = []
     for entry in cvss_entries:
         if not isinstance(entry, dict):
+            continue
+        version = str(entry.get("version") or "")
+        # Skip v2 scores — different scale, inflates vs v3.
+        # Missing version key: include (under-reporting is worse).
+        if version and not version.startswith("3"):
             continue
         metrics = entry.get("metrics") or {}
         score = metrics.get("baseScore")
