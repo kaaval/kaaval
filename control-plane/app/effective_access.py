@@ -239,21 +239,31 @@ def _subject_description(subject: dict) -> str:
 
 _POWERFUL_VERBS = {"escalate", "bind", "impersonate"}
 _BROAD_READ = {"get", "list", "watch"}
+# Pod subresources (core group) whose create/get grant signals a privileged role.
+_EXEC_SUBRESOURCES = {"pods/exec", "pods/attach", "pods/portforward"}
 
 
 def _role_is_privileged(rules: list[dict]) -> bool:
-    """Heuristic: a role is 'privileged' if it grants wildcard, secret read, escalation verbs, or exec."""
+    """Heuristic: a role is 'privileged' if it grants wildcard, secret read, escalation verbs, or exec.
+
+    The ``secrets`` and ``pods/*`` resource checks route through ``_has_resource``
+    so they only count in the core API group ("").  A CRD that reuses one of
+    these names in an unrelated group must not make a role look privileged
+    (issue #144), the same scoping #131 applied to the combo predicates.  Missing
+    or empty ``api_groups`` stays *unspecified* and still matches — see
+    ``_has_resource`` and the discussion on #131.  The wildcard and
+    escalation-verb checks are group-independent and left as-is.
+    """
     for r in rules:
         verbs = set(r.get("verbs") or [])
         resources = set(r.get("resources") or [])
         if "*" in verbs or "*" in resources:
             return True
-        if "secrets" in resources and verbs & _BROAD_READ:
+        if verbs & _BROAD_READ and _has_resource(r, _CORE_API_GROUP, "secrets"):
             return True
         if verbs & _POWERFUL_VERBS:
             return True
-        exec_resources = {"pods/exec", "pods/attach", "pods/portforward"}
-        if resources & exec_resources and verbs & {"create", "get"}:
+        if verbs & {"create", "get"} and _has_resource(r, _CORE_API_GROUP, *_EXEC_SUBRESOURCES):
             return True
     return False
 
