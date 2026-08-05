@@ -1,17 +1,19 @@
 # RBAC rule catalog
 
 Every rule the RBAC scanner (`control-plane/app/rbac_service.py`) evaluates,
-what triggers it, how it's scored, and what it maps to. Findings are produced
-per **(risky role, binding)** pair — a risky role with no binding produces no
-finding, because nobody holds the permission yet; the same role bound twice
-produces two findings, because the fix is two binding reviews.
+what triggers it, how it's scored, and what it maps to.
 
 All severities below are the **base** severity; the final ranking is the
 [Contextual Risk Score](contextual-risk-score.md) (base × environment × data
 classification × compliance scope × exposure). Benchmark citations are to the
 **CIS Kubernetes Benchmark v1.12.0**.
 
-## Rules
+## Per-role rules (single-role evaluation)
+
+Findings are produced per **(risky role, binding)** pair — a risky role with
+no binding produces no finding, because nobody holds the permission yet; the
+same role bound twice produces two findings, because the fix is two binding
+reviews.
 
 | `rule_type` | Trigger (any rule in the Role/ClusterRole) | Base severity | Maps to |
 |---|---|---|---|
@@ -69,6 +71,52 @@ Notes on the less obvious ones:
   Contextual Risk Score (environment + data classification) determine urgency
   rather than suppressing the rule. The base severity of HIGH exists to surface
   the pattern for review, not to mandate immediate remediation.
+
+## Combination-escalation rules (Effective Access Graph)
+
+The rules below are evaluated by `control-plane/app/effective_access.py` and
+operate on the **aggregated** rule set of a subject — all rules flattened
+across every Role and ClusterRole the subject is bound to, not any single
+Role in isolation. A subject holding half the combination in one role and the
+other half in a second role still fires the predicate. This is the core
+insight of the Effective Access Graph: partial grants that look harmless alone
+can be a full takeover together.
+
+| `rule_type` | Trigger (aggregate across **all** roles bound to the subject) | Base severity | Maps to |
+|---|---|---|---|
+| `combo_role_escalation` | `create` on `roles`/`clusterroles` **AND** `escalate` verb (each half may be in a different role) | CRITICAL | CIS 5.1.8, Kubernetes RBAC Good Practices ("Risks of Granting Create Verbs") |
+| `combo_bind_escalation` | `create` on `rolebindings`/`clusterrolebindings` **AND** `bind` verb (each half may be in a different role) | CRITICAL | CIS 5.1.8, Kubernetes RBAC Good Practices ("Risks of Granting Create Verbs") |
+| `impersonation_grant` | `impersonate` verb on `users`, `groups`, `serviceaccounts`, or `userextras` | CRITICAL | CIS 5.1.8 |
+| `privileged_pod_creation` | `create` on `pods` **AND** the subject's namespace contains at least one non-`default` ServiceAccount bound to a privileged role | HIGH | CIS 5.1.4, Kubernetes RBAC Good Practices (SA token mount path) |
+
+Notes on the combination rules:
+
+- **`combo_role_escalation`** — `create roles` alone is harmless (you still
+  can't grant yourself permissions you don't hold). `escalate` alone is
+  dangerous but limited. Together: create a role with any verbs you want,
+  then use `escalate` to climb into it — full privilege escalation with no
+  dependency on existing role content. No CIS control exists for the
+  combination itself; CIS 5.1.8 covers the `escalate` verb, and the
+  Kubernetes RBAC Good Practices doc covers `create` on Roles as an
+  escalation primitive.
+- **`combo_bind_escalation`** — `create rolebindings` alone cannot
+  exceed your current grants (the API server checks). `bind` alone is
+  equally constrained. Together: create a binding that points at any
+  existing role — including `cluster-admin` — and assign it to yourself.
+  One API call and you're cluster-admin. Same citation logic as above.
+- **`impersonation_grant`** — listed here because it is evaluated in the
+  same pass as the combination predicates. The resource check
+  (`users`, `groups`, `serviceaccounts`, `userextras`) ensures that
+  `impersonate` on non-identity resources (which the API server ignores)
+  does not produce false positives. CIS 5.1.8 covers it directly.
+- **`privileged_pod_creation`** — a pod creator can set `serviceAccountName`
+  to any ServiceAccount in the same namespace, mounting its token into the
+  new pod. If that SA is bound to a privileged role, the pod creator inherits
+  its permissions without ever being directly bound. "Privileged" means:
+  wildcard permissions, secrets read, escalation verbs, or exec/attach.
+  The `default` SA is excluded — its presence in every namespace is noise,
+  not signal. No CIS control covers the combination; CIS 5.1.4 covers pod
+  creation, and the RBAC Good Practices doc covers the SA-token-mount path.
 
 ## Suppression rules (noise control, and its limits)
 
