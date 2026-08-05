@@ -18,14 +18,34 @@ Or use `make db && make test`, which sets DATABASE_URL for you.
 """
 
 import os
+import pytest
+from sqlalchemy import text
 
 os.environ.setdefault("KAAVAL_ADMIN_PASSWORD", "test-admin-password")
 
 from fastapi.testclient import TestClient
 
+from app import database
 from app.main import app
 
 ADMIN_PASSWORD = os.environ["KAAVAL_ADMIN_PASSWORD"]
+
+
+def _is_database_reachable() -> bool:
+    try:
+        with database.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
+@pytest.fixture(autouse=True)
+def require_db_or_skip():
+    if not _is_database_reachable():
+        if os.getenv("KAAVAL_REQUIRE_DB") == "1":
+            return
+        pytest.skip("no reachable Postgres (set DATABASE_URL; see CONTRIBUTING.md)")
 
 
 def test_login_and_self_scan():
