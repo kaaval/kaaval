@@ -267,6 +267,12 @@ findings only) have since shipped.
     sarif_file: results.sarif
 ```
 
+A full, runnable version of this (checkout + Python setup + install +
+scan + upload, no manual filling-in) is in
+[`examples/github-actions/sarif-scan.yml`](../examples/github-actions/sarif-scan.yml) —
+it scans the `hack/dev/rbac-fixtures.yaml` testbed out of the box, so you
+can copy it in and just swap `--manifests` for your own path.
+
 ## Scheduled in-cluster scans (CronJob)
 
 For continuous posture monitoring, deploy the CronJob manifest under `deploy/`

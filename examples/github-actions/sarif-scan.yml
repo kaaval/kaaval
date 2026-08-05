@@ -1,0 +1,45 @@
+# Copy-paste starting point for running a Kaaval RBAC scan in CI and
+# surfacing findings in GitHub's Security tab. See docs/ci-integration.md
+# for the full CLI reference and the kaaval.yaml risk-context format.
+#
+# As shipped here it scans hack/dev/rbac-fixtures.yaml — Kaaval's own
+# planted-misconfiguration testbed — so this file runs as-is with no setup.
+# To use it for real, point --manifests at your own k8s/ (or helm template
+# output) and add --context-file kaaval.yaml.
+name: Kaaval RBAC scan (SARIF)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+
+jobs:
+  rbac-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    defaults:
+      run:
+        working-directory: control-plane
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Kaaval RBAC scan
+        run: |
+          python -m app.cli scan rbac \
+            --manifests ../hack/dev/rbac-fixtures.yaml \
+            --output sarif > results.sarif
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: control-plane/results.sarif
