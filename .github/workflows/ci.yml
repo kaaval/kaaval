@@ -83,7 +83,7 @@ jobs:
 
       - name: Invigil scorecard (report-only)
         id: invigil
-        uses: invigil/invigil@31a39b1acc83d8a1c9c9530179acf772a6ce9438 # v1.5.1
+        uses: invigil/invigil@7f31330715bb7e42f26032ce3e921fcf78d4acea # v1.7.1
         with:
           enforce: "false"
           # Fork PRs have a read-only token — skip the comment there.
