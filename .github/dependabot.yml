@@ -28,6 +28,10 @@ updates:
     schedule:
       interval: weekly
 
+  # Covers .github/workflows/ only — the github-actions ecosystem does not scan
+  # arbitrary paths, so workflow files under examples/ are NOT kept up to date
+  # here and will drift. Bump those by hand when touching them; they use
+  # floating major tags rather than SHA pins for exactly that reason.
   - package-ecosystem: github-actions
     directory: /
     schedule:

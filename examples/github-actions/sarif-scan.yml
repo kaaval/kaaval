@@ -6,6 +6,13 @@
 # planted-misconfiguration testbed — so this file runs as-is with no setup.
 # To use it for real, point --manifests at your own k8s/ (or helm template
 # output) and add --context-file kaaval.yaml.
+#
+# Actions below use floating major tags so this example stays readable and
+# obviously current. In your own repository, pin them to full commit SHAs —
+# `actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0` — the
+# way Kaaval's own .github/workflows/ do. A tag is mutable and a compromised
+# action runs with your workflow's permissions, which here include
+# security-events: write.
 name: Kaaval RBAC scan (SARIF)
 
 on:
@@ -23,9 +30,9 @@ jobs:
       run:
         working-directory: control-plane
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -39,7 +46,7 @@ jobs:
             --output sarif > results.sarif
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: control-plane/results.sarif
