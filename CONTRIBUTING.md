@@ -33,14 +33,43 @@ make scan-manifests   # scan the fixture YAML directly
 ## Run the tests
 
 ```bash
-make db               # throwaway Postgres
+make db               # throwaway Postgres on port 55432
 make test             # control-plane test suite
 make db-stop
 ```
 
-Tests are pure-function where possible (`control-plane/tests/`) — the RBAC
-rules, scoring, and remediation all have unit coverage that needs neither a
-cluster nor a database. Please add a test with any behavior change.
+Most of the suite is pure-function (`control-plane/tests/`) — the RBAC rules,
+scoring, and remediation need neither a cluster nor a database. **One test does
+need Postgres**: `tests/test_smoke.py` exercises the real startup path
+(`create_all` + admin seeding) through `TestClient`, so without a reachable
+database it fails with:
+
+```
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError)
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+```
+
+That is expected without `make db`, not a broken checkout. Please add a test
+with any behavior change.
+
+### Running pytest directly
+
+`make test` passes `DATABASE_URL` for you. If you invoke `pytest` yourself you
+must set it too — `make db` publishes Postgres on **55432**, while the
+application default is **5432**, so the bare command silently targets the wrong
+port:
+
+```bash
+cd control-plane
+DATABASE_URL=postgresql://kaaval:password@127.0.0.1:55432/kaaval_db \
+  KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/
+```
+
+To skip the database-backed test entirely and run everything else:
+
+```bash
+cd control-plane && pytest tests/ --ignore=tests/test_smoke.py
+```
 
 ## The two highest-value contributions
 
