@@ -1,10 +1,20 @@
 """
 Smoke test for the v1 detector flow: admin bootstrap -> login -> self-scan.
 
-Requires a reachable Postgres instance (DATABASE_URL, defaults to the same
-local docker-compose database as the app itself). Run from control-plane/:
+Requires a reachable Postgres instance — this is the one test in the suite that
+does. It drives the real FastAPI startup path (`create_all` + tenant/admin
+seeding) through TestClient, so an unreachable database surfaces as
+`sqlalchemy.exc.OperationalError: ... Connection refused` rather than an
+assertion failure.
 
-    KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/test_smoke.py
+`make db` publishes Postgres on port 55432; the application default is 5432, so
+DATABASE_URL must be set explicitly when running pytest directly. Run from
+control-plane/:
+
+    DATABASE_URL=postgresql://kaaval:password@127.0.0.1:55432/kaaval_db \
+      KAAVAL_ADMIN_PASSWORD=test-admin-password pytest tests/test_smoke.py
+
+Or use `make db && make test`, which sets DATABASE_URL for you.
 """
 
 import os
