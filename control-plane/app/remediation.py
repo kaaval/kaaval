@@ -57,6 +57,47 @@ _CIS_REFS = {
         {"benchmark": "OWASP Kubernetes Top 10", "id": "K03",
          "title": "Overly permissive RBAC configurations"},
     ],
+    # Combination-escalation rules (control-plane/app/effective_access.py).
+    # These fire on the *aggregate* rule set of a subject, not on a single Role.
+    #
+    # combo_role_escalation / combo_bind_escalation:
+    #   Both combinations are privilege-escalation primitives — CIS 5.1.8 covers
+    #   escalate/bind/impersonate individually; these combinations are the concrete
+    #   attack path each verb enables.  No additional CIS control exists for the
+    #   combination itself; the RBAC Good Practices doc covers "escalate+create"
+    #   as an explicit anti-pattern in its "Risks of Granting Create Verbs" section.
+    #
+    # impersonation_grant:
+    #   Directly covered by CIS 5.1.8 ("Limit use of the Bind, Impersonate, and
+    #   Escalate permissions").  Listed here for completeness so the combo-scan
+    #   findings carry the same citation as single-role privilege_escalation_verbs.
+    #
+    # privileged_pod_creation:
+    #   CIS 5.1.4 covers pod creation; the SA-token-mount vector adds the RBAC
+    #   Good Practices "Risks of Granting Create Verbs" section as a second source.
+    #   No CIS control covers the combination directly.
+    "combo_role_escalation": [
+        {"benchmark": CIS_BENCHMARK, "id": "5.1.8",
+         "title": "Limit use of the Bind, Impersonate, and Escalate permissions"},
+        {"benchmark": "Kubernetes RBAC Good Practices", "id": None,
+         "title": f"Risks of granting create verbs on Roles — {_RBAC_GOOD_PRACTICES_URL}"},
+    ],
+    "combo_bind_escalation": [
+        {"benchmark": CIS_BENCHMARK, "id": "5.1.8",
+         "title": "Limit use of the Bind, Impersonate, and Escalate permissions"},
+        {"benchmark": "Kubernetes RBAC Good Practices", "id": None,
+         "title": f"Risks of granting create verbs on RoleBindings — {_RBAC_GOOD_PRACTICES_URL}"},
+    ],
+    "impersonation_grant": [
+        {"benchmark": CIS_BENCHMARK, "id": "5.1.8",
+         "title": "Limit use of the Bind, Impersonate, and Escalate permissions"},
+    ],
+    "privileged_pod_creation": [
+        {"benchmark": CIS_BENCHMARK, "id": "5.1.4",
+         "title": "Minimize access to create pods"},
+        {"benchmark": "Kubernetes RBAC Good Practices", "id": None,
+         "title": f"SA token mount path — {_RBAC_GOOD_PRACTICES_URL}"},
+    ],
     # Segmentation violation: namespaced identity reaching cluster/cross-namespace scope.
     # There is no CIS 5.1 control that directly covers segmentation — CIS 5.1.5 is
     # about default SA token automount, not namespace isolation.  NIST SP 800-207A
@@ -132,6 +173,31 @@ _RBAC_ACTIONS = {
         "Set automountServiceAccountToken: false on the ServiceAccount (and on "
         "pod specs that do not call the Kubernetes API). Create a dedicated "
         "ServiceAccount with automount enabled only for workloads that need it."
+    ),
+    "combo_role_escalation": (
+        "Break the combination: remove either the create verb on roles/clusterroles "
+        "OR the escalate verb from every binding the subject holds. "
+        "Audit which bindings grant each half: "
+        "kubectl get clusterrolebindings,rolebindings -A -o wide | grep <subject>"
+    ),
+    "combo_bind_escalation": (
+        "Break the combination: remove either the create verb on rolebindings/"
+        "clusterrolebindings OR the bind verb from every binding the subject holds. "
+        "Audit which bindings grant each half: "
+        "kubectl get clusterrolebindings,rolebindings -A -o wide | grep <subject>"
+    ),
+    "impersonation_grant": (
+        "Remove the impersonate verb on users/groups/serviceaccounts from every role "
+        "the subject holds. Impersonation bypasses all RBAC controls targeting the "
+        "impersonated identity — treat it as cluster-admin equivalent. "
+        "Review with: kubectl get clusterrolebindings,rolebindings -A -o wide | grep <subject>"
+    ),
+    "privileged_pod_creation": (
+        "Either remove create on pods from the subject's roles, or remove the "
+        "privileged ServiceAccount from the namespace. A pod creator can mount any "
+        "SA token in the same namespace — constraining one side of the pair breaks "
+        "the escalation path. "
+        "Review mountable SAs: kubectl get serviceaccounts -n <namespace>"
     ),
     "segmentation_violation": (
         "Replace the ClusterRoleBinding with a namespaced RoleBinding scoped to "
