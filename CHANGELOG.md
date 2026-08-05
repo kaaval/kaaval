@@ -58,6 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   derived from the scoring weight maxima), so GitHub's Security-tab ordering mirrors
   Kaaval's contextual ranking. Contributed by
   [@Diyaaa-12](https://github.com/Diyaaa-12) (#56).
+- **RBAC scan diff** (`GET /rbac/scan/diff`): compares the two most recent persisted
+  scans and returns `added`, `resolved` and `unchanged_count`, keying findings on
+  `(rule_type, role.name, binding.name)` so a finding is tracked across scans rather
+  than by list position. Returns empty buckets until at least two scans exist.
+  Contributed by [@floze-the-genius](https://github.com/floze-the-genius) (#82).
+- **`kaaval doctor`**: a CLI dependency preflight that runs the same deep-health
+  checks the API exposes at `GET /health?deep=1` (Postgres, CVE feeds, Kubernetes
+  credentials) and prints one `✓`/`✗` line per check, appending the exact `fix:`
+  command on failure. Exits 2 when a required dependency is down, 0 otherwise, so it
+  drops into a container preflight or a CI step. Also gave the health surface typed
+  results (`HealthCheckResult`, `DeepCheckResult`). Contributed by
+  [@floze-the-genius](https://github.com/floze-the-genius) (#80).
 - **Scheduled in-cluster scans**: `deploy/cronjob.yaml` runs the headless CLI on a
   schedule and applies findings as PolicyReport/ClusterPolicyReport documents —
   init-container scans, pinned-kubectl main container applies, minimal split
