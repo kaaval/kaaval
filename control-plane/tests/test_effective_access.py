@@ -490,6 +490,71 @@ class TestPrivilegedPodCreation:
 
         assert not any(f["rule_type"] == "privileged_pod_creation" for f in findings)
 
+    def test_combo_does_not_fire_when_privileged_secrets_grant_is_in_non_core_group(self):
+        """
+        Regression (issue #144): _role_is_privileged() must scope 'secrets' to the
+        core API group (""). A ServiceAccount whose only elevated grant is
+        'secrets' read in an unrelated group — a CRD reusing the name — is not
+        actually privileged, so a pod creator sharing its namespace must NOT be
+        flagged with privileged_pod_creation.
+        """
+        pod_role = _cluster_role("pod-creator", [
+            {"verbs": ["create"], "resources": ["pods"], "api_groups": [""]},
+        ])
+        # 'secrets' in a foreign group: scary by name only, harmless in fact.
+        crd_secrets_role = _cluster_role("crd-secrets-reader", [
+            {"verbs": ["get", "list"], "resources": ["secrets"], "api_groups": ["example.com"]},
+        ])
+
+        attacker = [_sa("attacker", "team-a")]
+        crd_sa = [_sa("crd-sa", "team-a")]
+
+        graph = _graph(
+            cluster_roles=[pod_role, crd_secrets_role],
+            cluster_role_bindings=[
+                _crb("attacker-binding", "pod-creator", attacker),
+                _crb("crd-sa-binding", "crd-secrets-reader", crd_sa),
+            ],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert not any(f["rule_type"] == "privileged_pod_creation" for f in findings), (
+            "secrets in a non-core API group must not mark a role privileged"
+        )
+
+    def test_combo_fires_when_privileged_secrets_grant_has_missing_api_groups_key(self):
+        """
+        Regression guard (issue #144): with the api_groups key absent, 'secrets'
+        read is *unspecified* — still treated as core-group and still privileged.
+        The fix must not silently drop findings on hand-built graphs from
+        POST /rbac/combo-scan or on unrendered YAML templates via --manifests.
+        """
+        pod_role = _cluster_role("pod-creator", [
+            {"verbs": ["create"], "resources": ["pods"], "api_groups": [""]},
+        ])
+        # Same secrets-read grant, but with no api_groups key at all.
+        legacy_secrets_role = _cluster_role("legacy-secrets-reader", [
+            {"verbs": ["get", "list"], "resources": ["secrets"]},
+        ])
+
+        attacker = [_sa("attacker", "team-a")]
+        legacy_sa = [_sa("legacy-sa", "team-a")]
+
+        graph = _graph(
+            cluster_roles=[pod_role, legacy_secrets_role],
+            cluster_role_bindings=[
+                _crb("attacker-binding", "pod-creator", attacker),
+                _crb("legacy-sa-binding", "legacy-secrets-reader", legacy_sa),
+            ],
+        )
+
+        findings = evaluate_combo_findings(graph, _CONTEXT)
+
+        assert any(f["rule_type"] == "privileged_pod_creation" for f in findings), (
+            "secrets read with a missing api_groups key must still count as privileged"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Cross-cutting: scoring shape
