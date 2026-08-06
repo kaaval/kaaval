@@ -70,6 +70,45 @@ Notes on the less obvious ones:
   rather than suppressing the rule. The base severity of HIGH exists to surface
   the pattern for review, not to mandate immediate remediation.
 
+## Combination-escalation rules (Effective Access Graph)
+
+The four rules below are different in kind from everything above: they
+don't evaluate a single Role or ClusterRole in isolation. They evaluate a
+subject's **aggregate** rule set — every rule across every Role/ClusterRole
+that subject is bound to, flattened together
+(`control-plane/app/effective_access.py`). That's the whole point of the
+Effective Access Graph: two grants that are each harmless alone, held by the
+same identity through two different bindings, can together be a full
+takeover — and a per-Role scan would never see it, because neither Role
+alone looks risky.
+
+| `rule_type` | Trigger (subject's aggregate rule set, any combination of bindings) | Base severity | Maps to |
+|---|---|---|---|
+| `combo_role_escalation` | `create` on `roles`/`clusterroles` (in `rbac.authorization.k8s.io`) **+** the `escalate` verb, anywhere in the aggregate | CRITICAL | CIS 5.1.8 |
+| `combo_bind_escalation` | `create` on `rolebindings`/`clusterrolebindings` (in `rbac.authorization.k8s.io`) **+** the `bind` verb, anywhere in the aggregate | CRITICAL | CIS 5.1.8 |
+| `impersonation_grant` | `impersonate` on `users`/`groups`/`serviceaccounts`/`userextras` (core API group) | CRITICAL | CIS 5.1.8 |
+| `privileged_pod_creation` | `create` on `pods` (core API group), where the subject's namespace also contains a non-`default` ServiceAccount bound to a privileged role | HIGH | RBAC Good Practices, OWASP K03 (no CIS 5.1 control specific to this combination) |
+
+Notes:
+
+- **Relation to `privilege_escalation_verbs`** — that single-Role rule
+  already flags anyone holding `escalate`, `bind`, or `impersonate` on their
+  own, under CIS 5.1.8. These three combo rules cite the same control
+  because they're the same underlying concern, refined: each only fires once
+  the matching half is confirmed present too (create-roles for escalate,
+  create-bindings for bind, an impersonatable resource for impersonate) —
+  a stronger, more specific signal than the verb alone.
+- **`privileged_pod_creation`** has no dedicated combination control in CIS
+  5.1 — the closest single-grant relative is `workload_creation` (CIS 5.1.4,
+  plain pod creation). The combination case — pod creation *plus* a
+  hijackable privileged ServiceAccount sharing the namespace — is covered by
+  RBAC Good Practices and OWASP K03, not a specific CIS control ID.
+- **api_groups matters here** — `roles`/`clusterroles`/`rolebindings`/
+  `clusterrolebindings` only count in the `rbac.authorization.k8s.io` group;
+  `users`/`groups`/`serviceaccounts`/`pods` only count in the core group
+  (`""`). A CRD reusing one of those resource names in an unrelated group
+  does not trigger these rules (see #125).
+
 ## Suppression rules (noise control, and its limits)
 
 A stock cluster ships dozens of powerful built-in roles. Flagging them is
