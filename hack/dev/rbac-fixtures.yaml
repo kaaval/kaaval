@@ -18,6 +18,9 @@
 #  16. override-pod (pod true over SA false) → token_automount (MEDIUM)
 #  17. quiet-pod (pod automount: false)    → must produce ZERO automount findings
 #  18. override-deploy (template true over SA false) → token_automount (MEDIUM)
+#  19. combo-takeover SA   → today's per-role scan reports nothing for the subject;
+#                            evaluate_effective_access reports combo_role_escalation
+#                            (part of issue #47 / #84 — Effective Access Graph)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -351,3 +354,98 @@ spec:
       containers:
         - name: app
           image: registry.example.com/app:1.0
+---
+# 19. Combination-takeover fixture (issue #86)
+#
+# The trap: combo-takeover-sa is bound to two benign-looking ClusterRoles.
+# Evaluated in isolation neither role triggers an alert that reveals the full
+# danger — only when the Effective Access Graph aggregates the subject's grants
+# does the escalation path become visible.
+#
+# Trap anatomy:
+#   combo-role-writer   → grants "create" on roles/clusterroles (rbac group)
+#                         Looks like a normal role-provisioning account.
+#                         Per-role scan: NO finding (create on RBAC objects is
+#                         not a standalone red flag in the current rule set).
+#
+#   combo-escalate-gate → grants "escalate" on clusterroles (rbac group)
+#                         Looks like a tightly-scoped escalation guard.
+#                         Per-role scan: privilege_escalation_verbs (MEDIUM —
+#                         one role, no broader context).
+#
+# Combined (evaluate_combo_findings):
+#   The subject can *create* a role with arbitrary verbs, then *escalate* into
+#   it without a privilege check — a full cluster takeover.
+#   Finding: combo_role_escalation (CRITICAL).
+#
+# Verify:
+#   kind create cluster --name kaaval-dev 2>/dev/null || true
+#   kubectl apply -f hack/dev/rbac-fixtures.yaml
+#   # Per-role scan sees privilege_escalation_verbs for combo-escalate-gate only
+#   # (no combo_role_escalation finding for the subject).
+#   # Once issue #84 lands, evaluate_effective_access for combo-takeover-sa
+#   # must report combo_role_escalation (CRITICAL).
+
+# Role A — "role provisioner": create roles/clusterroles looks routine.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: combo-role-writer
+  labels:
+    kaaval.dev/fixture: combo-takeover
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "clusterroles"]
+    verbs: ["create"]  # half 1: create arbitrary roles — harmless without escalate
+---
+# Role B — "escalation gate": escalate verb scoped to clusterroles looks limited.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: combo-escalate-gate
+  labels:
+    kaaval.dev/fixture: combo-takeover
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["escalate"]  # half 2: escalate into existing roles — dangerous with create
+---
+# The subject: bound to both halves, each binding looks unremarkable alone.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: combo-takeover-sa
+  namespace: default
+  labels:
+    kaaval.dev/fixture: combo-takeover
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: combo-role-writer-binding
+  labels:
+    kaaval.dev/fixture: combo-takeover
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: combo-role-writer
+subjects:
+  - kind: ServiceAccount
+    name: combo-takeover-sa
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: combo-escalate-gate-binding
+  labels:
+    kaaval.dev/fixture: combo-takeover
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: combo-escalate-gate
+subjects:
+  - kind: ServiceAccount
+    name: combo-takeover-sa
+    namespace: default
