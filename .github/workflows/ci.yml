@@ -90,8 +90,5 @@ jobs:
           # Fork PRs have a read-only token — skip the comment there.
           comment: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
 
-      # The action leaves the CLI installed; the composite action doesn't
-      # declare an `outputs:` block yet (invigil/invigil issue filed), so
-      # regenerate the markdown report for the job summary directly.
       - name: Publish report to job summary
-        run: invigil score . --format markdown >> "$GITHUB_STEP_SUMMARY"
+        run: cat "${{ steps.invigil.outputs.report }}" >> "$GITHUB_STEP_SUMMARY"
