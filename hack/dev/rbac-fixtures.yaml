@@ -18,9 +18,10 @@
 #  16. override-pod (pod true over SA false) → token_automount (MEDIUM)
 #  17. quiet-pod (pod automount: false)    → must produce ZERO automount findings
 #  18. override-deploy (template true over SA false) → token_automount (MEDIUM)
-#  19. combo-takeover SA   → today's per-role scan reports nothing for the subject;
-#                            evaluate_effective_access reports combo_role_escalation
-#                            (part of issue #47 / #84 — Effective Access Graph)
+#  19. combo-takeover SA   → per-role scan reports no escalation path for the
+#                            subject; evaluate_combo_findings reports
+#                            combo_role_escalation (issue #47 / #84 — Effective
+#                            Access Graph)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -365,13 +366,21 @@ spec:
 # Trap anatomy:
 #   combo-role-writer   → grants "create" on roles/clusterroles (rbac group)
 #                         Looks like a normal role-provisioning account.
-#                         Per-role scan: NO finding (create on RBAC objects is
-#                         not a standalone red flag in the current rule set).
+#                         Per-role scan: no escalation finding — "create" on RBAC
+#                         objects is not a standalone red flag in the current rule
+#                         set. (The binding does raise segmentation_violation, as
+#                         every ClusterRoleBinding over a namespaced SA does; that
+#                         is about cluster-scope reach, not the takeover path.)
 #
 #   combo-escalate-gate → grants "escalate" on clusterroles (rbac group)
 #                         Looks like a tightly-scoped escalation guard.
-#                         Per-role scan: privilege_escalation_verbs (MEDIUM —
-#                         one role, no broader context).
+#                         Per-role scan: privilege_escalation_verbs (HIGH — the
+#                         rule scores HIGH whenever the role is cluster-scoped;
+#                         it is MEDIUM only for a namespaced Role).
+#
+# Neither per-role finding names the takeover path: the scanner flags the
+# escalate verb and the cluster-scope reach, but nothing tells you this subject
+# can mint a role and climb into it.
 #
 # Combined (evaluate_combo_findings):
 #   The subject can *create* a role with arbitrary verbs, then *escalate* into
@@ -381,10 +390,11 @@ spec:
 # Verify:
 #   kind create cluster --name kaaval-dev 2>/dev/null || true
 #   kubectl apply -f hack/dev/rbac-fixtures.yaml
-#   # Per-role scan sees privilege_escalation_verbs for combo-escalate-gate only
-#   # (no combo_role_escalation finding for the subject).
-#   # Once issue #84 lands, evaluate_effective_access for combo-takeover-sa
-#   # must report combo_role_escalation (CRITICAL).
+#   # Per-role scan reports privilege_escalation_verbs + segmentation_violation,
+#   # but no combo_role_escalation for the subject.
+#   # evaluate_combo_findings() already reports combo_role_escalation (CRITICAL)
+#   # for combo-takeover-sa today — the predicates shipped in #105/#131/#145.
+#   # What #84 adds is surfacing it through the per-role scan path.
 
 # Role A — "role provisioner": create roles/clusterroles looks routine.
 apiVersion: rbac.authorization.k8s.io/v1
