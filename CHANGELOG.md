@@ -20,6 +20,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no arguments (or `serve`) runs the API server.
 
 ### Added
+- **Grype report ingestion** (`app/grype_adapter.py`): the second external scanner
+  adapter, a pure `parse(report_json, context) -> list[finding_dict]` transform from
+  `grype -o json` (`matches[].vulnerability` / `.artifact` / `.fix`) into the same
+  finding shape the Trivy adapter emits, tagged `source: "grype"`. Key parity with
+  `trivy_adapter.py` is exact, so scoring, remediation, the PDF builder and the
+  dashboard consume Grype findings unmodified. CVSS selection skips v2 entries so the
+  v2 scale never inflates a score against v3. Contributed by
+  [@Diyaaa-12](https://github.com/Diyaaa-12) (#123).
+- **Remediation and rule-catalog coverage for the combination-escalation rules**:
+  `combo_role_escalation`, `combo_bind_escalation`, `impersonation_grant` and
+  `privileged_pod_creation` now carry the same verified benchmark citations
+  (CIS 5.1.8, CIS 5.1.4, Kubernetes RBAC Good Practices) and actionable remediation
+  text as the single-role rules, so a combo-scan finding is no longer the only kind
+  that reaches a user without a fix attached. `docs/rbac-rules.md` gained a
+  "Combination-escalation rules" section documenting all four triggers, and the
+  per-role table is now explicitly scoped as single-role evaluation. Contributed by
+  [@Maqbool61](https://github.com/Maqbool61) (#133).
+- **Combination-takeover fixture** (`hack/dev/rbac-fixtures.yaml`): a ServiceAccount
+  bound to two separately-innocuous ClusterRoles — one granting `create` on
+  roles/clusterroles, the other `escalate` on clusterroles — so the live testbed
+  proves the aggregate case. The per-role scan reports no takeover path;
+  `evaluate_combo_findings()` reports `combo_role_escalation` (CRITICAL). Contributed
+  by [@Maqbool61](https://github.com/Maqbool61) (#152).
 - **Trivy report ingestion** (`app/trivy_adapter.py`): a pure
   `parse(report_json, context) -> list[finding_dict]` adapter turning
   `trivy image --format json` (schema v2) output into the same finding shape
@@ -100,6 +123,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Covenant v2.1, DCO sign-off requirement, CHANGELOG.
 
 ### Fixed
+- **Database-backed tests skip cleanly without Postgres**: `pytest tests/` on a fresh
+  clone no longer greets a first-time contributor with a raw
+  `sqlalchemy.exc.OperationalError` stack trace. The DB-dependent tests probe the
+  connection first and skip with an actionable reason naming `DATABASE_URL` and
+  `CONTRIBUTING.md`. CI sets `KAAVAL_REQUIRE_DB=1` so an unreachable database there
+  still fails loudly instead of silently skipping the coverage. Contributed by
+  [@HeaTTap](https://github.com/HeaTTap) (#151).
+- **The CIS 5.1.6 acceptance check now runs in CI**: the standalone
+  `check_issue7_acceptance.py` script became `tests/test_issue7_acceptance.py`, so the
+  `token_automount` severity matrix and the five-output-mode regression guard (token
+  findings are the only findings with no `role`/`binding`, and once crashed the
+  SARIF/JUnit/PolicyReport builders) are enforced on every run rather than when
+  someone remembers to run the script. Contributed by
+  [@donkk11](https://github.com/donkk11) (#124).
+- **Combination-takeover fixture comments matched to scanner output**: three comments
+  in the new fixture described behaviour the scanner does not produce — a "no finding"
+  claim for a binding that raises `segmentation_violation`, a MEDIUM severity for a
+  rule that scores HIGH when cluster-scoped, and a note deferring
+  `combo_role_escalation` to a future issue when the predicates already ship it (#157).
 - **RBAC scan diffs surface severity changes**: `GET /rbac/scan/diff` gained a
   `severity_changed` bucket, so a finding that escalates between scans no longer hides
   in `unchanged` — the diff keys on finding identity and compares severity separately.
