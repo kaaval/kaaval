@@ -117,6 +117,14 @@ Notes on the combination rules:
   The `default` SA is excluded — its presence in every namespace is noise,
   not signal. No CIS control covers the combination; CIS 5.1.4 covers pod
   creation, and the RBAC Good Practices doc covers the SA-token-mount path.
+- **`api_groups` matters here** —
+  `roles`/`clusterroles`/`rolebindings`/`clusterrolebindings` only count in the
+  `rbac.authorization.k8s.io` group; `users`/`groups`/`serviceaccounts`/`pods`
+  only count in the core group (`""`). A CRD reusing one of those resource names
+  in an unrelated group does not trigger these rules (see #125). A rule that
+  omits `api_groups` (or leaves it empty) is treated as *unspecified* and still
+  counts — `_has_resource` resolves missing information toward reporting a
+  possible finding rather than assuming core-group-only.
 
 ## Suppression rules (noise control, and its limits)
 
