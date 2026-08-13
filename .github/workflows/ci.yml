@@ -45,6 +45,7 @@ jobs:
           KAAVAL_ADMIN_PASSWORD: test-admin-password
           KAAVAL_SECRET_KEY: ci_secret_key
           KAAVAL_REFRESH_SECRET_KEY: ci_refresh_secret_key
+          KAAVAL_REQUIRE_DB: "1"
         run: pytest tests/ --cov=app --cov-fail-under=60
 
   dashboard:
