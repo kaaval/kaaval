@@ -705,3 +705,82 @@ class TestPrivilegedPodCreationNamespaceIsolation:
             "privileged_pod_creation must still fire when privileged SA and "
             "pod-creator share the same namespace"
         )
+
+
+# ---------------------------------------------------------------------------
+# Remediation coverage — issue #88
+# Every combo rule_type must have a non-generic remediation action and at
+# least one benchmark_ref.  Mirrors test_findings_carry_remediation in
+# test_rbac_service.py.
+# ---------------------------------------------------------------------------
+
+class TestComboRemediationCoverage:
+    """
+    Acceptance criteria from issue #88:
+    - One remediation entry per new rule_type.
+    - Test asserts no new rule_type is missing a remediation.
+    """
+
+    def _all_combo_findings(self):
+        """Graph that fires all four combo predicates."""
+        priv_role = _cluster_role("priv", [
+            {"verbs": ["*"], "resources": ["*"], "api_groups": ["*"]},
+        ])
+        combo_role = _cluster_role("all-combos", [
+            {"verbs": ["create", "escalate", "bind", "impersonate"],
+             "resources": ["roles", "clusterroles", "rolebindings",
+                           "clusterrolebindings", "users", "pods"],
+             "api_groups": ["*"]},
+        ])
+        graph = _graph(
+            cluster_roles=[combo_role, priv_role],
+            cluster_role_bindings=[
+                _crb("attacker-b", "all-combos", _SUBJECT),
+                _crb("priv-b", "priv", [_sa("elevated-sa", "team-a")]),
+            ],
+        )
+        return evaluate_combo_findings(graph, _CONTEXT)
+
+    def test_every_combo_rule_type_has_remediation(self):
+        """No combo finding should fall through to the generic 'Role ?' template."""
+        findings = self._all_combo_findings()
+        rule_types_seen = set()
+        for f in findings:
+            rt = f["rule_type"]
+            rule_types_seen.add(rt)
+            rem = f.get("remediation", {})
+            action = rem.get("action", "")
+            assert action, f"{rt}: remediation action is empty"
+            assert "?" not in action, (
+                f"{rt}: action fell through to generic template — "
+                f"add a _RBAC_ACTIONS entry in remediation.py. Got: {action!r}"
+            )
+
+        expected = {
+            "combo_role_escalation",
+            "combo_bind_escalation",
+            "impersonation_grant",
+            "privileged_pod_creation",
+        }
+        assert expected <= rule_types_seen, (
+            f"Missing rule_types in findings: {expected - rule_types_seen}"
+        )
+
+    def test_combo_remediation_has_benchmark_refs(self):
+        """Each combo finding must carry at least one verified benchmark citation."""
+        findings = self._all_combo_findings()
+        for f in findings:
+            rt = f["rule_type"]
+            refs = f.get("remediation", {}).get("benchmark_refs", [])
+            assert refs, f"{rt}: no benchmark_refs — add entry to _CIS_REFS in remediation.py"
+            for ref in refs:
+                assert ref.get("benchmark"), f"{rt}: benchmark_ref missing 'benchmark' key"
+                assert ref.get("title"), f"{rt}: benchmark_ref missing 'title' key"
+
+    def test_combo_remediation_has_audit_note(self):
+        """audit_note must be present so the access-review log can be populated."""
+        findings = self._all_combo_findings()
+        for f in findings:
+            rt = f["rule_type"]
+            audit_note = f.get("remediation", {}).get("audit_note", "")
+            assert audit_note, f"{rt}: audit_note is empty"
