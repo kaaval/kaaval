@@ -7,7 +7,8 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from . import __version__, models, database, auth, audit
 from .cve_service import cve_service as _cve_service
 from .health import run_deep_checks
+from .metrics import collect_metrics
 from .routers import cve, rbac
 
 logger = logging.getLogger(__name__)
@@ -186,6 +188,12 @@ def health(deep: bool = False):
         status_code=503 if report["status"] == "error" else 200,
         content=report,
     )
+
+
+@app.get("/metrics")
+def metrics(db: Session = Depends(database.get_db)):
+    """Prometheus exposition format — scan, vulnerability, RBAC, and endpoint counts."""
+    return Response(content=collect_metrics(db), media_type=CONTENT_TYPE_LATEST)
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
