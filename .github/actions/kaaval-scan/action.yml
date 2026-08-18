@@ -5,6 +5,10 @@ description: >-
   of a flat severity threshold.
 author: "rrskris"
 
+branding:
+  icon: "shield"
+  color: "blue"
+
 inputs:
   manifests:
     description: "Path to RBAC YAML manifests (file or directory) — shift-left mode"
