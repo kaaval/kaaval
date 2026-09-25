@@ -1,0 +1,57 @@
+{
+  "roles": [],
+  "cluster_roles": [
+    {
+      "name": "bind-and-create-bindings",
+      "kind": "ClusterRole",
+      "rules": [
+        {"verbs": ["create"], "resources": ["rolebindings", "clusterrolebindings"], "api_groups": ["rbac.authorization.k8s.io"]},
+        {"verbs": ["bind"], "resources": ["clusterroles"], "api_groups": ["rbac.authorization.k8s.io"]}
+      ]
+    },
+    {
+      "name": "impersonator",
+      "kind": "ClusterRole",
+      "rules": [
+        {"verbs": ["impersonate"], "resources": ["users", "groups", "serviceaccounts"], "api_groups": [""]}
+      ]
+    },
+    {
+      "name": "pod-creator",
+      "kind": "ClusterRole",
+      "rules": [
+        {"verbs": ["create"], "resources": ["pods"], "api_groups": [""]}
+      ]
+    },
+    {
+      "name": "cluster-admin-equivalent",
+      "kind": "ClusterRole",
+      "rules": [
+        {"verbs": ["*"], "resources": ["*"], "api_groups": ["*"]}
+      ]
+    }
+  ],
+  "role_bindings": [],
+  "cluster_role_bindings": [
+    {
+      "name": "attacker-bind-escalation",
+      "roleRef": {"kind": "ClusterRole", "name": "bind-and-create-bindings"},
+      "subjects": [{"kind": "ServiceAccount", "name": "attacker-sa", "namespace": "team-red"}]
+    },
+    {
+      "name": "attacker-impersonate",
+      "roleRef": {"kind": "ClusterRole", "name": "impersonator"},
+      "subjects": [{"kind": "ServiceAccount", "name": "attacker-sa", "namespace": "team-red"}]
+    },
+    {
+      "name": "attacker-pod-create",
+      "roleRef": {"kind": "ClusterRole", "name": "pod-creator"},
+      "subjects": [{"kind": "ServiceAccount", "name": "attacker-sa", "namespace": "team-red"}]
+    },
+    {
+      "name": "privileged-sa-binding",
+      "roleRef": {"kind": "ClusterRole", "name": "cluster-admin-equivalent"},
+      "subjects": [{"kind": "ServiceAccount", "name": "powerful-sa", "namespace": "team-red"}]
+    }
+  ]
+}

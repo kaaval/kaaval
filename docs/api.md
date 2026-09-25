@@ -109,10 +109,20 @@ a known gap from the v1.1.0 cleanup; the self-scan path is the primary one.
 | `GET /rbac/scan/latest` | Most recent RBAC scan |
 | `GET /rbac/scan/latest/report.pdf` | Same scan as a PDF |
 | `GET /rbac/scan/diff` | Compare the two most recent scans — `added`, `resolved`, and `unchanged_count` |
+| `POST /rbac/combo-scan` | Run the [combination-escalation](rbac-rules.md) predicates against an RBAC graph you POST (same shape as the live scan) — no cluster needed |
 
 ```bash
 curl -s -X POST http://localhost:8000/rbac/scan -H "Authorization: Bearer $TOKEN" \
   | jq '.findings[0] | {rule_type, severity, contextual_score, remediation}'
+```
+
+To smoke-test the combination predicates against a deployment,
+`hack/dev/combo-scan-graph.json` fires all four `rule_type`s:
+
+```bash
+curl -s -X POST http://localhost:8000/rbac/combo-scan -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -d @hack/dev/combo-scan-graph.json \
+  | jq '[.findings[].rule_type] | unique'
 ```
 
 RBAC findings carry the same scoring/remediation fields as CVE findings,
