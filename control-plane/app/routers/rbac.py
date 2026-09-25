@@ -12,6 +12,7 @@ from ..cve_service import cve_service
 from ..rbac_service import diff_latest_scans, get_latest_rbac_scan, scan_rbac
 from ..effective_access import evaluate_combo_findings
 from ..report_service import build_rbac_scan_pdf
+from ..request_limits import json_body_openapi, limited_json_body
 
 router = APIRouter(prefix="/rbac", tags=["RBAC"])
 
@@ -96,11 +97,11 @@ def get_latest_scan_report_pdf(
 
 # ── Combo-escalation endpoints (issue #85) ────────────────────────────────────
 
-@router.post("/combo-scan")
+@router.post("/combo-scan", openapi_extra=json_body_openapi(ComboScanRequest))
 def run_combo_scan(
-    body: ComboScanRequest,
+    user=Depends(get_current_active_user),  # authenticate before reading the body
+    body: ComboScanRequest = Depends(limited_json_body(ComboScanRequest)),
     db: Session = Depends(get_db),
-    user=Depends(get_current_active_user),
 ):
     """
     Evaluate combination-escalation predicates against a supplied RBAC graph.
@@ -116,6 +117,9 @@ def run_combo_scan(
 
     Findings are scored against the tenant's stored ScanContext (the same one
     POST /rbac/scan uses); an explicit ``context`` in the body overrides it.
+
+    Bodies larger than KAAVAL_MAX_REQUEST_BODY_MB (default 20) are rejected
+    with a 413 before the graph is parsed or evaluated.
     """
     graph = {
         "roles": body.roles,
