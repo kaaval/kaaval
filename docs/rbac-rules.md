@@ -28,6 +28,7 @@ reviews.
 | `csr_approval` | `certificatesigningrequests/approval` + update/patch (ClusterRole only) | HIGH | CIS 5.1.11 |
 | `webhook_config_access` | write verbs on mutating/validating webhook configurations (ClusterRole only) | HIGH | CIS 5.1.12 |
 | `pv_creation` | `persistentvolumes` + create (ClusterRole only) | HIGH | CIS 5.1.9 |
+| `ineffective_cluster_scope_grant` | a namespaced `Role` naming cluster-scoped resources (`clusterroles`, `clusterrolebindings`, `nodes`, `persistentvolumes`, `namespaces`, `customresourcedefinitions`, …) in their own API group; `resources: ["*"]` is left to `wildcard_permissions` | MEDIUM | [Kubernetes RBAC docs — Role and ClusterRole](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole) (no CIS 5.1 control exists) |
 | `cluster_admin_binding` | cluster-admin (or wildcard-equivalent role) bound to a **broad identity** | CRITICAL | CIS 5.1.1 (+5.1.7 when the subject is `system:masters`) |
 | `segmentation_violation` | a namespaced `ServiceAccount` bound cluster-wide via `ClusterRoleBinding`, or a `RoleBinding` granting a SA from a different namespace (cross-namespace reach) | HIGH | NIST SP 800-207A (Zero Trust micro-segmentation), Kubernetes RBAC Good Practices (no CIS 5.1 control covers namespace isolation directly) |
 
@@ -38,6 +39,12 @@ Notes on the less obvious ones:
   reach. There is deliberately no invented CIS ID here: no 5.1 control covers
   it, so the citation is the Kubernetes RBAC Good Practices document and
   OWASP Kubernetes Top 10 K03.
+- **`ineffective_cluster_scope_grant`** — the one rule that flags too
+  *little* access rather than too much. Kubernetes accepts a `Role` that names
+  cluster-scoped resources, but a Role only grants within its namespace, so
+  that part of the grant does nothing and the workload gets 403s at runtime.
+  It's a correctness and availability bug that looks like a working config.
+  No CIS control covers it; the citation is the Kubernetes RBAC docs on scope.
 - **`privilege_escalation_verbs`** — `escalate` lets the holder edit roles to
   exceed their own grants, `bind` lets them bind roles they don't hold,
   `impersonate` lets them act as another identity. Each is a full
