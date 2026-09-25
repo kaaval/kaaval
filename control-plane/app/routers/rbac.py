@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..auth import get_current_active_user
+from ..cve_service import cve_service
 from ..rbac_service import diff_latest_scans, get_latest_rbac_scan, scan_rbac
 from ..effective_access import evaluate_combo_findings
 from ..report_service import build_rbac_scan_pdf
@@ -29,7 +30,7 @@ class ComboScanRequest(BaseModel):
     cluster_roles: list[dict] = []
     role_bindings: list[dict] = []
     cluster_role_bindings: list[dict] = []
-    context: Optional[dict] = None  # override risk context; defaults to production/internal
+    context: Optional[dict] = None  # override risk context; defaults to the tenant's stored ScanContext
 
 
 _DEFAULT_CONTEXT = {
@@ -98,6 +99,7 @@ def get_latest_scan_report_pdf(
 @router.post("/combo-scan")
 def run_combo_scan(
     body: ComboScanRequest,
+    db: Session = Depends(get_db),
     user=Depends(get_current_active_user),
 ):
     """
@@ -111,6 +113,9 @@ def run_combo_scan(
     - combo_bind_escalation   (create rolebindings + bind)
     - impersonation_grant     (impersonate on users/groups/serviceaccounts)
     - privileged_pod_creation (create pods + privileged SA in same namespace)
+
+    Findings are scored against the tenant's stored ScanContext (the same one
+    POST /rbac/scan uses); an explicit ``context`` in the body overrides it.
     """
     graph = {
         "roles": body.roles,
@@ -118,7 +123,9 @@ def run_combo_scan(
         "role_bindings": body.role_bindings,
         "cluster_role_bindings": body.cluster_role_bindings,
     }
-    context = body.context or _DEFAULT_CONTEXT
+    context = body.context or cve_service._context_to_dict(
+        cve_service.get_or_create_scan_context(db, user.tenant_id)
+    )
     findings = evaluate_combo_findings(graph, context)
     return {
         "total_subjects_checked": len({
