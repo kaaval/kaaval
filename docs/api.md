@@ -145,3 +145,14 @@ no server or DB at all — see [ci-integration.md](ci-integration.md).
 `postgres`, `cve-feeds`, and `kubernetes`, including the fix text for failures.
 Optional failures are reported without failing the command; a required failure
 returns exit code `2`.
+
+## Image report ingestion
+
+`POST /ingest/trivy` and `POST /ingest/grype` accept one native image JSON report,
+require bearer authentication, apply the tenant’s stored risk context, and return
+201 with a persisted scan. `GET /ingest/scans/latest` returns only that tenant’s
+latest import (optional `source=trivy` or `source=grype`; 404 if none).
+
+Bodies are limited by `KAAVAL_MAX_REQUEST_BODY_MB` (default 20 MB); oversized
+input returns 413, invalid report schemas return 422. See the
+[import guide](trivy-grype-integration.md) for commands, response fields, and CLI gating.

@@ -144,6 +144,15 @@ def test_empty_input_yields_empty_dict():
     assert parse_audit_usage([]) == {}
 
 
+def test_malformed_resource_fields_do_not_abort_the_batch():
+    import json
+
+    bad = [json.dumps({"verb": "get", "user": {"username": "alice"}, "objectRef": fields})
+           for fields in ({"resource": ["pods"]}, {"resource": "pods", "namespace": {"bad": 1}})]
+    usage = parse_audit_usage([*bad, VALID_GET_NAMESPACED])
+    assert usage == {"system:serviceaccount:payments:api": {("get", "configmaps", "payments")}}
+
+
 def test_blank_lines_are_ignored():
     assert parse_audit_usage(["", "   ", "\n"]) == {}
 

@@ -36,12 +36,14 @@ Exit codes: 0 clean/below threshold, 1 threshold breached,
 
 import argparse
 import json
+import math
 import os
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import yaml
+from pydantic import ValidationError
 
 from . import __version__
 from .health import DeepCheckResult, run_deep_checks
@@ -70,6 +72,8 @@ _WORKLOAD_TEMPLATE_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "ReplicaSe
 def _finding_target(f: dict) -> dict:
     """Uniform exporter target: binding-based findings point at the binding;
     token_automount findings point at the workload or ServiceAccount instead."""
+    if f.get("image"):
+        return {"kind": "ContainerImage", "name": f["image"], "namespace": None}
     binding = f.get("binding")
     if binding:
         return {**binding, "api_version": "rbac.authorization.k8s.io/v1"}
@@ -108,20 +112,22 @@ def load_context(path: str | None) -> dict:
 
     try:
         data = yaml.safe_load(Path(path).read_text()) or {}
-    except FileNotFoundError:
-        _fail_usage(f"context file not found: {path}")
+    except (OSError, UnicodeError) as exc:
+        _fail_usage(f"cannot read context file '{path}': {exc}")
     except yaml.YAMLError as exc:
         _fail_usage(f"context file is not valid YAML: {exc}")
 
+    if not isinstance(data, dict):
+        _fail_usage("context file must contain a YAML mapping")
     context = {**_DEFAULT_CONTEXT, **{k: v for k, v in data.items() if k in _DEFAULT_CONTEXT}}
-    if context["environment"] not in VALID_ENVIRONMENTS:
+    if not isinstance(context["environment"], str) or context["environment"] not in VALID_ENVIRONMENTS:
         _fail_usage(f"environment must be one of {sorted(VALID_ENVIRONMENTS)}")
-    if context["data_classification"] not in VALID_DATA_CLASSIFICATIONS:
+    if not isinstance(context["data_classification"], str) or context["data_classification"] not in VALID_DATA_CLASSIFICATIONS:
         _fail_usage(f"data_classification must be one of {sorted(VALID_DATA_CLASSIFICATIONS)}")
-    if context["exposure"] not in VALID_EXPOSURES:
+    if not isinstance(context["exposure"], str) or context["exposure"] not in VALID_EXPOSURES:
         _fail_usage(f"exposure must be one of {sorted(VALID_EXPOSURES)}")
-    if not isinstance(context["compliance_scope"], list):
-        _fail_usage("compliance_scope must be a list")
+    if not isinstance(context["compliance_scope"], list) or not all(isinstance(v, str) for v in context["compliance_scope"]):
+        _fail_usage("compliance_scope must be a list of strings")
 
     # Gating thresholds may live in the context file too; flags override.
     context["_fail_on_score"] = data.get("fail_on_score")
@@ -270,12 +276,15 @@ def _severity_breakdown(findings: list) -> dict:
 
 def _print_table(result: dict) -> None:
     findings = result["findings"]
-    print(f"Kaaval RBAC scan — {result['total_bindings_checked']} bindings checked, "
-          f"{len(findings)} findings")
+    if result["scan_type"] == "image":
+        print(f"Kaaval image scan — {result['source']}: {result['image']}, {len(findings)} findings")
+    else:
+        print(f"Kaaval RBAC scan — {result['total_bindings_checked']} bindings checked, "
+              f"{len(findings)} findings")
     counts = ", ".join(f"{k}={v}" for k, v in result["severity_breakdown"].items() if v)
     print(f"Severity: {counts or 'none'}\n")
     if not findings:
-        print("No RBAC misconfigurations found.")
+        print("No image vulnerabilities found." if result["scan_type"] == "image" else "No RBAC misconfigurations found.")
         return
     for f in findings:
         binding = _finding_target(f)
@@ -312,7 +321,7 @@ def _finding_rows(result: dict) -> list:
     rows = []
     for f in result["findings"]:
         rows.append({
-            "rule_id": f["rule_type"],
+            "rule_id": f.get("rule_type") or f["cve_id"],
             "level": _SEVERITY_TO_SARIF_LEVEL.get(f.get("severity", "UNKNOWN"), "note"),
             "title": f["title"],
             "message": f["remediation"]["action"],
@@ -346,8 +355,9 @@ def _print_sarif(result: dict) -> None:
                 "id": rule_id,
                 "name": rule_id,
                 "shortDescription": {"text": _humanize_rule_type(rule_id)},
-                "helpUri": "https://github.com/kaaval/kaaval/blob/main/docs/rbac-rules.md",
-                "properties": {"tags": ["rbac", "security"]},
+                "helpUri": "https://github.com/kaaval/kaaval/blob/main/docs/" + (
+                    "trivy-grype-integration.md" if result["scan_type"] == "image" else "rbac-rules.md"),
+                "properties": {"tags": [result["scan_type"], "security"]},
                 }
 
     for rule_id, rule in rules_by_id.items():
@@ -407,7 +417,7 @@ def _print_junit(result: dict) -> None:
     rows = _finding_rows(result)
 
     testsuite = ET.Element("testsuite", {
-        "name": "kaaval.rbac",
+        "name": f"kaaval.{result['scan_type']}",
         "tests": str(len(rows) or 1),
         "failures": str(len(rows)),
         "errors": "0",
@@ -415,15 +425,15 @@ def _print_junit(result: dict) -> None:
 
     if not rows:
         ET.SubElement(testsuite, "testcase", {
-            "classname": "kaaval.rbac",
-            "name": "no RBAC misconfigurations found",
+            "classname": f"kaaval.{result['scan_type']}",
+            "name": "no image vulnerabilities found" if result["scan_type"] == "image" else "no RBAC misconfigurations found",
         })
     else:
         for row in rows:
             binding = _finding_target(row["raw"])
             location = binding.get("namespace") or "cluster-scoped"
             testcase = ET.SubElement(testsuite, "testcase", {
-                "classname": f"kaaval.rbac.{row['rule_id']}",
+                "classname": f"kaaval.{result['scan_type']}.{row['rule_id']}",
                 "name": row["title"],
             })
             failure = ET.SubElement(testcase, "failure", {
@@ -475,10 +485,10 @@ def _policyreport_result(f: dict) -> dict:
     }
     if refs:
         properties["benchmark_refs"] = refs
-    return {
+    entry = {
         "source": "Kaaval",
-        "policy": f["rule_type"],
-        "category": "rbac",
+        "policy": f.get("rule_type") or f["cve_id"],
+        "category": "image" if f.get("image") else "rbac",
         "severity": _SEVERITY_TO_POLICYREPORT.get(f.get("severity", "UNKNOWN"), "info"),
         "result": "fail",
         "scored": True,
@@ -486,6 +496,14 @@ def _policyreport_result(f: dict) -> dict:
         "resources": [resource],
         "properties": properties,
     }
+    if f.get("image"):
+        # An image reference is not a Kubernetes object. Do not invent a
+        # ContainerImage resource reference in the PolicyReport.
+        entry.pop("resources")
+        properties["image"] = f["image"]
+        properties["scanner"] = f["source"]
+        properties["components"] = ", ".join(a["component"] for a in f["affected"])
+    return entry
 
 
 def _build_policy_reports(result: dict) -> list:
@@ -508,7 +526,7 @@ def _build_policy_reports(result: dict) -> list:
             "apiVersion": "wgpolicyk8s.io/v1alpha2",
             "kind": "PolicyReport",
             "metadata": {
-                "name": "kaaval-rbac",
+                "name": f"kaaval-{result['scan_type']}",
                 "namespace": ns,
                 "labels": {"app.kubernetes.io/managed-by": "kaaval"},
             },
@@ -520,7 +538,7 @@ def _build_policy_reports(result: dict) -> list:
         "apiVersion": "wgpolicyk8s.io/v1alpha2",
         "kind": "ClusterPolicyReport",
         "metadata": {
-            "name": "kaaval-rbac",
+            "name": f"kaaval-{result['scan_type']}",
             "labels": {"app.kubernetes.io/managed-by": "kaaval"},
         },
         "summary": {**empty_summary, "fail": len(cluster_results)},
@@ -574,6 +592,30 @@ def run_doctor() -> int:
     return 2 if report["status"] == "error" else 0
 
 
+def _image_scan(args, context: dict) -> dict:
+    from .image_ingest import REPORT_MODELS, score_report
+    from .request_limits import max_request_body_bytes
+
+    source = "trivy" if args.from_trivy is not None else "grype"
+    path = args.from_trivy if args.from_trivy is not None else args.from_grype
+    try:
+        limit = max_request_body_bytes()
+        if path == "-":
+            raw = sys.stdin.buffer.read(limit + 1)
+        else:
+            with open(path, "rb") as report_file:
+                raw = report_file.read(limit + 1)
+        if len(raw) > limit:
+            _fail_usage("image report exceeds KAAVAL_MAX_REQUEST_BODY_MB (default 20 MB)")
+        report = REPORT_MODELS[source].model_validate_json(raw)
+    except (OSError, ValueError) as exc:
+        if isinstance(exc, ValidationError):
+            error = exc.errors(include_input=False, include_context=False)[0]
+            _fail_usage(f"invalid {source} image report at {error['loc']}: {error['msg']}")
+        _fail_usage(f"cannot read image report '{path}': {exc}")
+    return score_report(report, context)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
@@ -597,6 +639,15 @@ def main(argv: list[str] | None = None) -> int:
     rbac.add_argument("--fail-on-severity", help="Exit 1 if any finding is at/above this severity")
     rbac.add_argument("--output", choices=["table", "json", "sarif", "policyreport", "junit"], default="table")
 
+    image = scan_sub.add_parser("image", help="Score an existing Trivy or Grype image JSON report")
+    image_source = image.add_mutually_exclusive_group(required=True)
+    image_source.add_argument("--from-trivy", metavar="PATH", help="Trivy JSON file, or - for stdin")
+    image_source.add_argument("--from-grype", metavar="PATH", help="Grype JSON file, or - for stdin")
+    image.add_argument("--context-file", help="kaaval.yaml risk context")
+    image.add_argument("--fail-on-score", type=float, help="Exit 1 if any finding scores >= this")
+    image.add_argument("--fail-on-severity", help="Exit 1 if any finding is at/above this severity")
+    image.add_argument("--output", choices=["table", "json", "sarif", "policyreport", "junit"], default="table")
+
     args = parser.parse_args(argv)
 
     if args.command == "doctor":
@@ -608,21 +659,23 @@ def main(argv: list[str] | None = None) -> int:
     context.pop("_fail_on_score", None)
     context.pop("_fail_on_severity", None)
 
-    if args.manifests:
-        graph = build_graph_from_manifests(args.manifests)
-    else:
-        graph = build_graph_from_cluster(args.kubeconfig)
+    if fail_on_score is not None:
+        try:
+            fail_on_score = float(fail_on_score)
+            if not math.isfinite(fail_on_score) or fail_on_score < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            _fail_usage("--fail-on-score must be a finite non-negative number")
+    if fail_on_severity is not None:
+        if not isinstance(fail_on_severity, str) or fail_on_severity.upper() not in SEVERITY_ORDER[1:]:
+            _fail_usage(f"--fail-on-severity must be one of {SEVERITY_ORDER[1:]}")
 
-    findings = evaluate_rbac_findings(graph, context)
-    result = {
-        "scan_type": "rbac",
-        "mode": "manifests" if args.manifests else "live",
-        "context": context,
-        "total_bindings_checked": len(graph["role_bindings"]) + len(graph["cluster_role_bindings"]),
-        "affected_count": len(findings),
-        "severity_breakdown": _severity_breakdown(findings),
-        "findings": findings,
-    }
+    if args.scan_type == "image":
+        result = _image_scan(args, context)
+        findings = result["findings"]
+    else:
+        result = _rbac_scan(args, context)
+        findings = result["findings"]
 
     if args.output == "json":
         print(json.dumps(result, indent=2))
@@ -637,6 +690,24 @@ def main(argv: list[str] | None = None) -> int:
 
     return _apply_gate(findings, fail_on_score, fail_on_severity)
 
+
+def _rbac_scan(args, context: dict) -> dict:
+
+    if args.manifests:
+        graph = build_graph_from_manifests(args.manifests)
+    else:
+        graph = build_graph_from_cluster(args.kubeconfig)
+
+    findings = evaluate_rbac_findings(graph, context)
+    return {
+        "scan_type": "rbac",
+        "mode": "manifests" if args.manifests else "live",
+        "context": context,
+        "total_bindings_checked": len(graph["role_bindings"]) + len(graph["cluster_role_bindings"]),
+        "affected_count": len(findings),
+        "severity_breakdown": _severity_breakdown(findings),
+        "findings": findings,
+    }
 
 if __name__ == "__main__":
     sys.exit(main())

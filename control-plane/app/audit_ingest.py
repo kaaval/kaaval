@@ -144,6 +144,11 @@ def parse_audit_usage(lines: Iterable[str]) -> dict[str, set[tuple]]:
             # against granted RBAC, so we don't record it as usage.
             continue
 
+        if not isinstance(resource, str) or not resource or not isinstance(namespace, str):
+            skipped += 1
+            logger.warning("[audit_ingest] invalid resource or namespace skipped (total skipped so far: %d)", skipped)
+            continue
+
         usage.setdefault(subject_key, set()).add((verb, resource, namespace))
 
     if skipped:

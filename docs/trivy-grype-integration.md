@@ -1,7 +1,7 @@
-# Design: Trivy / Grype ingestion (external CVE finding sources)
+# Trivy / Grype image report ingestion
 
-**Status:** design proposal — no implementation yet.
-**Decision needed:** approve the mapping + API shape below before building.
+**Status:** CLI and authenticated API implemented. Dashboard import controls and
+image-specific PDF export remain follow-ups.
 
 ## Why
 
@@ -74,26 +74,77 @@ breaking `severity`). `build_remediation()`'s CVE branch already produces
 Dedup rule: `(cve_id, image, component)` — the same CVE in two images is two
 findings, because the fix is two image rebuilds.
 
-## API surface
+## CLI: score existing reports
 
+From `control-plane/` with the Python dependencies installed:
+
+```bash
+trivy image --format json --output report.json myregistry/payments:1.0
+python -m app.cli scan image --from-trivy report.json --context-file kaaval.yaml --output json
+
+grype myregistry/payments:1.0 -o json > grype.json
+python -m app.cli scan image --from-grype grype.json --context-file kaaval.yaml --fail-on-score 20
+
+set -o pipefail
+trivy image --format json myregistry/payments:1.0 | python -m app.cli scan image --from-trivy - --output sarif
 ```
-POST /ingest/trivy   (body: raw trivy JSON, or {"reports": [...]})
-POST /ingest/grype   (body: raw grype JSON)
-GET  /ingest/scans/latest
+
+Use `--from-grype -` for Grype on stdin. The two source flags are mutually
+exclusive. Kaaval reads an existing report; it never invokes a scanner itself.
+Use `pipefail` so a scanner failure cannot be hidden by a later pipeline stage.
+
+Outputs: `table`, `json`, `sarif`, `junit`, and `policyreport`. SARIF uses CVE IDs
+and logical image locations. JUnit names the suite `kaaval.image`. PolicyReport
+emits a `ClusterPolicyReport` named `kaaval-image`, with image/package identity
+in string properties; it does not claim that an image is a Kubernetes resource.
+
+Exit codes: `0` below threshold (or no gate), `1` at least one finding breaches
+`--fail-on-score` or `--fail-on-severity`, `2` unreadable/invalid/oversized input
+or invalid settings. Flags override the thresholds in the context file. With no
+context file, the CLI warns and uses production/internal/internal defaults.
+
+The same CVE, two contexts, using the bundled representative report fixture:
+
+```bash
+python -m app.cli scan image --from-trivy tests/fixtures/trivy_report_sample.json --context-file ../examples/image-ingest/dev.yaml --fail-on-score 10 --output json
+python -m app.cli scan image --from-trivy tests/fixtures/trivy_report_sample.json --context-file ../examples/image-ingest/production.yaml --fail-on-score 10 --output json
 ```
 
-- Auth: existing bearer auth, same as every other route.
-- Persistence: new `IngestedScanResult` model, same shape/pattern as
-  `RBACScanResult` (scanned_at, source, image_count, affected_count,
-  findings JSON, status).
-- Scoring context: the tenant's existing `ScanContext` — no new settings.
-- Size guard: reject bodies > a configured limit (env var, default 20 MB);
-  Trivy reports for large images are big.
+Both reports contain the same four deduplicated findings. The dev invocation
+passes; the production/PII/internet-facing invocation breaches the score gate.
+The fixture is test data, not evidence that a particular live image is vulnerable.
 
-CLI follow-up (work-stream E, later phase): `kaaval ingest trivy report.json
---fail-on-score N` gates a pipeline on *contextually scored* image findings —
-Trivy's own `--severity HIGH` gate can't know the finding lands in a
-production/PCI cluster.
+## API: import and retrieve a tenant's report
+
+| Route | Behavior |
+|---|---|
+| `POST /ingest/trivy` | Raw JSON from one Trivy image report; returns 201 with scored findings |
+| `POST /ingest/grype` | Raw JSON from one Grype image report; returns 201 with scored findings |
+| `GET /ingest/scans/latest?source=trivy` | Latest import for the authenticated tenant; optional source filter; 404 if none |
+
+```bash
+curl --fail-with-body -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' --data-binary @report.json http://localhost:8000/ingest/trivy
+curl --fail-with-body -H "Authorization: Bearer $TOKEN" http://localhost:8000/ingest/scans/latest
+```
+
+Authentication runs before body parsing. The API uses the authenticated tenant's
+stored `ScanContext` from `GET|PUT /cve/context`; a report cannot override it.
+The stored response contains `id`, `scanned_at`, `source`, `image`, `image_count`,
+`context`, `affected_count`, `severity_breakdown`, and `findings`. Latest-scan
+queries always filter by tenant. Imports are stored in the new
+`ingested_scan_results` table, created by the existing application startup schema
+initialization; no existing scan data is rewritten.
+
+Both entry points validate the report before scoring. Trivy requires schema v2,
+`ArtifactType: container_image`, and `ArtifactName`; Grype requires `matches`
+and an image `source`. Unknown metadata is ignored. Malformed finding records
+and non-finite/out-of-range CVSS values are rejected rather than treated as a
+clean scan. Batch envelopes such as `{"reports": [...]}` are not supported.
+
+`KAAVAL_MAX_REQUEST_BODY_MB` sets the positive integer size limit (default 20 MB)
+for API bodies and CLI reports. The API checks both Content-Length and streamed
+bytes, returning 413 for excess size and 422 for invalid reports. The CLI reads
+at most the limit plus one byte and exits 2 on excess size.
 
 ## Non-goals
 
@@ -102,9 +153,3 @@ production/PCI cluster.
   another score multiplier, not a separate verdict (see roadmap research).
 - Replacing the native scanner (explicitly additive; see "Why").
 - SBOM ingestion (CycloneDX/SPDX) — plausible later, out of scope here.
-
-## Effort estimate
-
-Small: two pure-function adapters + fixtures from real Trivy/Grype output,
-one model, one router, ~1 session including tests — because scoring,
-remediation, PDF, and dashboard are all reused as-is.

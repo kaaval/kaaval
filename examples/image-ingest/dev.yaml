@@ -1,0 +1,4 @@
+environment: dev
+data_classification: public
+compliance_scope: []
+exposure: internal

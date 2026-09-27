@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from . import __version__, models, database, auth, audit
 from .cve_service import cve_service as _cve_service
 from .health import run_deep_checks
-from .routers import cve, rbac
+from .routers import cve, rbac, ingest
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ app.add_middleware(
 
 app.include_router(cve.router)
 app.include_router(rbac.router)
+app.include_router(ingest.router)
 
 # ── Default CVE feeds ──────────────────────────────────────────────────────────
 

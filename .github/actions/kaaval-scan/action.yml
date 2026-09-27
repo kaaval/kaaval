@@ -26,7 +26,7 @@ inputs:
     description: "Fail the job if any finding is at/above this severity (LOW/MEDIUM/HIGH/CRITICAL)"
     required: false
   output:
-    description: "Output format: table or json"
+    description: "Output format: table, json, sarif, junit, or policyreport"
     required: false
     default: "table"
   kaaval-ref:

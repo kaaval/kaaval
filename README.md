@@ -18,6 +18,7 @@ Most scanners stop at detection: here's 800 CVEs, here's 50 risky RBAC bindings,
 
 ## What it does today
 
+- **Trivy and Grype report import** — score existing image reports with `scan image --from-trivy report.json` or `--from-grype report.json`. Supports stdin, contextual CI gates, JSON/table/SARIF/JUnit/PolicyReport output, and tenant-scoped API storage. [Import guide](docs/trivy-grype-integration.md).
 - **CVE scanning** — connects to your live cluster (in-cluster or via kubeconfig), fingerprints the control plane version and running add-ons (`ingress-nginx`, `coredns`, `metrics-server`, CSI drivers, etc.), and cross-references what's actually running against the official Kubernetes CVE feed and NVD. No guessing which CVEs apply to you — only the ones that match your real component versions show up.
 - **RBAC misconfiguration scanning** — walks every Role, ClusterRole, and binding in the cluster against 11 rules covering the CIS Kubernetes Benchmark v1.12.0 section 5.1 controls that are inspectable from RBAC state: wildcard permissions, Secrets access, exec/attach grants, escalate/bind/impersonate verbs, `nodes/proxy`, CSR approval, webhook config writes, ServiceAccount token creation, workload/PV creation, and cluster-admin bound to broad identities (`default` SA, `system:authenticated`, `system:masters`). Built-in system roles are filtered out so you see real problems, not platform internals. Full catalog: [docs/rbac-rules.md](docs/rbac-rules.md).
 - **Contextual Risk Score** — the same CVE or RBAC finding ranks differently depending on your answers to four questions: is this production or dev? What data lives here (PII, financial, PHI)? Which compliance frameworks apply (PCI-DSS, HIPAA, SOC2)? Is it internet-facing? The score is never a black box — every finding shows exactly which factors pushed it up or down. Formula and weights: [docs/contextual-risk-score.md](docs/contextual-risk-score.md).
@@ -67,6 +68,7 @@ Key endpoints (full reference: [docs/api.md](docs/api.md)):
 - `GET|POST /cve/feeds` — manage which CVE feeds are active
 - `GET|PUT /cve/context` — read/update your tenant's risk context (environment, data classification, compliance scope, exposure) that drives the Contextual Risk Score
 - `POST /rbac/scan`, `GET /rbac/scan/latest`, `GET /rbac/scan/latest/report.pdf` — scan the cluster's Roles/ClusterRoles/bindings for misconfigurations, fetch or export the result
+- `POST /ingest/trivy`, `POST /ingest/grype`, `GET /ingest/scans/latest` — import an image report and retrieve the current tenant's latest import
 
 Kaaval is fully open source under Apache-2.0 — no open-core split, no feature gates, no license tokens. Everything the project ships runs self-hosted, and it will stay that way: the project is being built toward CNCF vendor-neutrality standards.
 
@@ -139,7 +141,7 @@ Dashboard: http://localhost:3000. API: http://localhost:8000.
 | `control-plane/` — CVE + RBAC scanning, contextual scoring, remediation, PDF, CLI | ✅ shipped, tested, in the published image |
 | `dashboard/` — Next.js UI | ✅ shipped |
 | `policies/kyverno/` — admission-time counterparts | ✅ shipped |
-| `deploy/helm/` | 🚧 planned ([#8](https://github.com/kaaval/kaaval/issues/8)) |
+| `deploy/helm/` | 🚧 chart skeleton and lint CI exist; deployment templates pending ([#8](https://github.com/kaaval/kaaval/issues/8)) |
 | `agent/`, `cloud-scanner/` — Go engine | 📐 reserved skeletons, not functional (see their READMEs) |
 | `plugins/` — integration descriptors | 📐 reserved, no runtime |
 

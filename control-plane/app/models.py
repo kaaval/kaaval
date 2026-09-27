@@ -186,6 +186,16 @@ class ScanContext(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
+class IngestedScanResult(Base):
+    """External image report, with explicit tenant isolation and scoring context."""
+    __tablename__ = "ingested_scan_results"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
+    scanned_at = Column(DateTime, default=datetime.datetime.utcnow)
+    source = Column(String, nullable=False)
+    result = Column(JSON, nullable=False)
+
+
 class RBACScanResult(Base):
     """RBAC misconfiguration scan — same JSON-blob-per-scan shape as CVEScanResult."""
     __tablename__ = "rbac_scan_results"

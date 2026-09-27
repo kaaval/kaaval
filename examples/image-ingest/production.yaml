@@ -1,0 +1,4 @@
+environment: production
+data_classification: pii
+compliance_scope: [PCI-DSS]
+exposure: internet-facing

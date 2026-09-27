@@ -25,12 +25,13 @@ Live-cluster mode, using a read-only CI service account:
   with:
     kubeconfig: .kube/ci-readonly-config
     context-file: kaaval.yaml
-    fail-on-score: 70
+    fail-on-score: 20
     output: json
 ```
 
-Pin `@main` to a released tag (for example `@v0.5.0`) once you want a fixed
-version instead of always running the latest `main`.
+For reproducible runs, pin both the action's `uses:` ref and its `kaaval-ref`
+input to the same reviewed commit SHA. The action checks out the scanner
+separately, and `kaaval-ref` otherwise defaults to `main`.
 
 ## Inputs
 
@@ -41,10 +42,14 @@ version instead of always running the latest `main`.
 | `context-file` | No | — | Path to the `kaaval.yaml` risk context (risk context as code). |
 | `fail-on-score` | No | — | Fail the job if any finding's contextual score is `>=` this value. |
 | `fail-on-severity` | No | — | Fail the job if any finding is at/above this severity (`LOW`/`MEDIUM`/`HIGH`/`CRITICAL`). |
-| `output` | No | `table` | Output format: `table` or `json`. |
+| `output` | No | `table` | Output format: `table`, `json`, `sarif`, `junit`, or `policyreport`. |
 | `kaaval-ref` | No | `main` | Git ref of Kaaval to run — pin this for reproducible CI runs. |
 
 Provide `manifests` for shift-left scanning, or `kubeconfig` for a live
 cluster — not both. Combine `fail-on-score` and/or `fail-on-severity` to gate
 the job; with neither set, the action reports findings without failing the
 build.
+
+Branding and this usage guide prepare the action for publication. The action
+currently lives in a subdirectory; Marketplace publication remains tracked
+in [#34](https://github.com/kaaval/kaaval/issues/34).

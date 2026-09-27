@@ -22,13 +22,13 @@ findings** — not raw detection volume. Every item below serves that.
 
 ## Milestone v1.2 — pipeline reach
 
-- [ ] SARIF output → GitHub Security tab — [#1](https://github.com/kaaval/kaaval/issues/1), in review ([#10](https://github.com/kaaval/kaaval/pull/10))
-- [ ] JUnit XML output for GitLab/Jenkins test panes — [#2](https://github.com/kaaval/kaaval/issues/2) **[good first issue]**
-- [ ] Feed GitHub alert ranking (`security-severity`) from the Contextual Risk Score — [#32](https://github.com/kaaval/kaaval/issues/32)
-- [ ] Friendly CLI error for unreadable manifest paths — [#30](https://github.com/kaaval/kaaval/issues/30) **[good first issue]**
-- [ ] CronJob manifest for scheduled in-cluster scans — [#33](https://github.com/kaaval/kaaval/issues/33) **[good first issue]**
+- [x] SARIF output → GitHub Security tab — [#1](https://github.com/kaaval/kaaval/issues/1); runnable example workflow included
+- [x] JUnit XML output for GitLab/Jenkins test panes — [#2](https://github.com/kaaval/kaaval/issues/2)
+- [x] Feed GitHub alert ranking (`security-severity`) from the Contextual Risk Score — [#32](https://github.com/kaaval/kaaval/issues/32)
+- [x] Friendly CLI error for unreadable manifest paths — [#30](https://github.com/kaaval/kaaval/issues/30)
+- [x] CronJob manifest for scheduled in-cluster scans — [#33](https://github.com/kaaval/kaaval/issues/33)
 - [ ] Argo CD / Flux "verify after deploy" recipe using PolicyReport output — [#38](https://github.com/kaaval/kaaval/issues/38) **[good first issue]**
-- [ ] Real Helm chart (`deploy/helm/` is an empty stub) — [#8](https://github.com/kaaval/kaaval/issues/8) **[help wanted]**
+- [ ] Complete the Helm chart (skeleton, PostgreSQL dependency, and lint CI exist; deployment templates still pending) — [#8](https://github.com/kaaval/kaaval/issues/8) **[help wanted]**
 - [ ] Publish the GitHub Action to the Marketplace — [#34](https://github.com/kaaval/kaaval/issues/34)
 
 ## Milestone v1.3 — more sources, same score
@@ -36,12 +36,12 @@ findings** — not raw detection volume. Every item below serves that.
 The moat is the scoring/explanation layer; every new source feeds it through
 a pure adapter ([pattern](docs/trivy-grype-integration.md)).
 
-- [ ] Trivy report ingestion — [#5](https://github.com/kaaval/kaaval/issues/5) **[help wanted]**
-- [ ] Grype report ingestion — [#6](https://github.com/kaaval/kaaval/issues/6) **[help wanted]**
+- [x] Trivy report ingestion — [#5](https://github.com/kaaval/kaaval/issues/5); CLI import, contextual gates, and authenticated API storage
+- [x] Grype report ingestion — [#6](https://github.com/kaaval/kaaval/issues/6); same CLI/API contract as Trivy
 - [ ] Kyverno PolicyReport **ingestion** — consume admission results as a finding source — [#35](https://github.com/kaaval/kaaval/issues/35) **[help wanted]**
 - [ ] Prometheus `/metrics` endpoint — [#3](https://github.com/kaaval/kaaval/issues/3) **[help wanted]**
-- [ ] `GET /rbac/scan/diff` — alert on *new* findings only — [#4](https://github.com/kaaval/kaaval/issues/4) **[help wanted]**
-- [ ] More CIS §5.1 rules (e.g. default-SA token automount) — [#7](https://github.com/kaaval/kaaval/issues/7) **[good first issue]**
+- [x] `GET /rbac/scan/diff` — added, resolved, and severity-changed findings — [#4](https://github.com/kaaval/kaaval/issues/4)
+- [x] CIS 5.1.6 ServiceAccount and workload token automount — [#7](https://github.com/kaaval/kaaval/issues/7)
 - [ ] Auto-detect data classification / exposure from namespace labels — [#36](https://github.com/kaaval/kaaval/issues/36)
 
 ## Milestone v1.4 — Zero-Trust posture
@@ -52,9 +52,9 @@ and how far a compromise reaches. Anchored to
 [NIST SP 800-207A](https://doi.org/10.6028/NIST.SP.800-207A). Full design:
 [docs/design/zero-trust-rbac.md](docs/design/zero-trust-rbac.md).
 
-- [ ] **Effective Access Graph** — per-identity aggregated permissions + combination escalation paths (the lead build) — [#47](https://github.com/kaaval/kaaval/issues/47) **[help wanted]**
+- [ ] **Effective Access Graph** — aggregation and four combination predicates implemented; CLI/dashboard integration still pending — [#47](https://github.com/kaaval/kaaval/issues/47) **[help wanted]**
 - [ ] Blast-radius exposure factor on the Contextual Risk Score — [#48](https://github.com/kaaval/kaaval/issues/48) **[help wanted]**
-- [ ] Segmentation-violation rule (namespaced identity reaching cluster scope) — [#49](https://github.com/kaaval/kaaval/issues/49) **[good first issue]**
+- [x] Segmentation-violation rule (namespaced identity reaching cluster scope) — [#49](https://github.com/kaaval/kaaval/issues/49)
 - [ ] Usage-based least-privilege via audit-log ingestion (design first) — [#50](https://github.com/kaaval/kaaval/issues/50) **[help wanted]**
 
 ## Milestone v2.0 — the differentiators
