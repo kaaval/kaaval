@@ -66,7 +66,7 @@ Everything else is a front door onto that core:
 | FastAPI routers | live cluster via `k8s_client.py` | persistence, auth, multi-tenant context |
 | PDF export (`report_service.py`) | persisted scans | shareable report |
 | CLI (`app/cli.py`) | manifests dir **or** kubeconfig | exit-code gating for pipelines — no DB, no auth, no server |
-| (planned) Trivy/Grype ingest | their JSON reports | same scoring on image CVEs — see [trivy-grype-integration.md](trivy-grype-integration.md) |
+| Trivy/Grype ingest | native image JSON reports via CLI or authenticated API | same scoring on image CVEs, tenant-scoped import storage — see [trivy-grype-integration.md](trivy-grype-integration.md) |
 
 This is why the CI story is cheap: the CLI is ~300 lines of argument parsing
 and YAML→graph mapping around code that already existed and was already

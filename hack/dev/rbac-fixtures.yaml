@@ -22,6 +22,9 @@
 #                            subject; evaluate_combo_findings reports
 #                            combo_role_escalation (issue #47 / #84 — Effective
 #                            Access Graph)
+#  20. rbac-lister (ns Role) → ineffective_cluster_scope_grant (Role names
+#                            clusterroles/clusterrolebindings, which a Role
+#                            can't grant — issue #120)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -458,4 +461,28 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: combo-takeover-sa
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rbac-lister
+  namespace: default
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rbac-lister-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rbac-lister
+subjects:
+  - kind: ServiceAccount
+    name: rbac-auditor
     namespace: default

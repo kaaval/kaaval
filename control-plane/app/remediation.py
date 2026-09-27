@@ -50,6 +50,14 @@ _CIS_REFS = {
     "pv_creation": [
         {"benchmark": CIS_BENCHMARK, "id": "5.1.9", "title": "Minimize access to create persistent volumes"},
     ],
+    # A namespaced Role naming cluster-scoped resources is a correctness bug, not
+    # over-privilege — no CIS control covers it. Cite the RBAC docs on scope.
+    "ineffective_cluster_scope_grant": [
+        {"benchmark": "Kubernetes RBAC documentation", "id": None,
+         "title": "Role and ClusterRole — a Role always sets permissions within a particular "
+                  "namespace; cluster-scoped resources need a ClusterRole — "
+                  "https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole"},
+    ],
     # exec/attach has NO CIS 5.1 control — cite the primary sources instead.
     "exec_attach_grant": [
         {"benchmark": "Kubernetes RBAC Good Practices", "id": None,
@@ -132,6 +140,11 @@ _RBAC_ACTIONS = {
         "Remove pods/exec, pods/attach, and pods/portforward from {role}; grant "
         "interactive access through an audited break-glass role instead of a "
         "standing permission."
+    ),
+    "ineffective_cluster_scope_grant": (
+        "Move the cluster-scoped resources out of {role} into a ClusterRole bound "
+        "with a ClusterRoleBinding; a namespaced Role cannot grant access to them. "
+        "Review with: kubectl get {role_arg} -o yaml"
     ),
     "cluster_admin_binding": (
         "Delete the binding ({binding_cmd}) and create a narrowly scoped "

@@ -5,6 +5,10 @@ description: >-
   of a flat severity threshold.
 author: "rrskris"
 
+branding:
+  icon: "shield"
+  color: "blue"
+
 inputs:
   manifests:
     description: "Path to RBAC YAML manifests (file or directory) — shift-left mode"
@@ -22,7 +26,7 @@ inputs:
     description: "Fail the job if any finding is at/above this severity (LOW/MEDIUM/HIGH/CRITICAL)"
     required: false
   output:
-    description: "Output format: table or json"
+    description: "Output format: table, json, sarif, junit, or policyreport"
     required: false
     default: "table"
   kaaval-ref:

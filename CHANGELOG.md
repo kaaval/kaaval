@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### September maintenance
+- Add image-report CLI ingestion (`scan image --from-trivy/--from-grype`, including
+  stdin), contextual gates, and all five output formats. Add authenticated
+  `POST /ingest/trivy`, `POST /ingest/grype`, and `GET /ingest/scans/latest` with
+  tenant-scoped persistence, stored scoring context, schema validation, and bounded
+  request bodies. Imported results are available through the API; dashboard import
+  controls and image PDF export remain follow-ups.
+- Integrate tenant-context scoring (#182), request-body limits (#181), demo fixture
+  extraction (#183), the ineffective namespaced grant rule (#184), and API-group
+  documentation (#142), contributed by @shariqueahmad108-ship-it. Resolve the shared
+  endpoint changes together and preserve authentication before body processing.
+- Add the audit usage parser (#101), contributed by @girosole60, with a follow-up
+  guard against malformed resource/namespace fields aborting an entire batch.
+- Add Action branding and usage documentation (#173), contributed by @donkk11;
+  clarify reproducible scanner pinning and correct the gate example. Marketplace
+  publication itself remains pending.
+- Upgrade Next.js and its ESLint configuration to 16.3.3, refresh vulnerable
+  transitive dependencies, and make dashboard container builds use `npm ci` with
+  the committed lockfile.
+- Apply the Python patch updates from #180 and verified checkout, CodeQL, and
+  provenance-action pins from #171/#169/#170/#162; keep CodeQL init/analyze aligned.
+- Reconcile the roadmap with implemented SARIF, JUnit, scan-diff, token-automount,
+  CronJob, and ingestion capabilities.
+
 ### Changed
 - **Project renamed: Argus → Kaaval** (కావల్, "guard duty / keeping watch") to avoid
   colliding with the long-running openargus.org network audit project. Repo is now

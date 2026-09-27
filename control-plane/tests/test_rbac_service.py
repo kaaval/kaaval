@@ -617,3 +617,92 @@ def test_automount_workload_template_override_fires_with_kind():
     assert len(findings) == 1
     assert findings[0]["workload"]["kind"] == "Deployment"
     assert findings[0]["title"] == "Token Automount via Deployment 'web'"
+
+
+# ── ineffective_cluster_scope_grant (issue #120) ──────────────────────────────
+
+def _namespaced_rule_graph(rule, namespace="team-a"):
+    """One namespaced Role with one rule, bound in its namespace to one ServiceAccount."""
+    return {
+        "roles": [{"name": "reader", "kind": "Role", "namespace": namespace, "rules": [rule]}],
+        "role_bindings": [{
+            "name": "reader-binding",
+            "kind": "RoleBinding",
+            "namespace": namespace,
+            "roleRef": {"kind": "Role", "name": "reader"},
+            "subjects": [{"kind": "ServiceAccount", "name": "app", "namespace": namespace}],
+        }],
+        "cluster_roles": [], "cluster_role_bindings": [],
+    }
+
+
+def _ineffective(findings):
+    return [f for f in findings if f["rule_type"] == "ineffective_cluster_scope_grant"]
+
+
+def test_role_naming_cluster_scoped_resources_is_ineffective():
+    # The grant from #107's Helm chart that motivated the rule.
+    graph = _namespaced_rule_graph({
+        "verbs": ["get", "list", "watch"],
+        "resources": ["roles", "rolebindings", "clusterroles", "clusterrolebindings"],
+        "api_groups": ["rbac.authorization.k8s.io"], "resource_names": [],
+    })
+
+    flagged = _ineffective(evaluate_rbac_findings(graph, _CONTEXT))
+
+    assert len(flagged) == 1
+    assert flagged[0]["severity"] == "MEDIUM"
+    assert "clusterrolebindings, clusterroles" in flagged[0]["description"]
+    assert "roles," not in flagged[0]["description"].replace("clusterroles,", "")
+    remediation = flagged[0]["remediation"]
+    assert "ClusterRole" in remediation["action"]
+    assert all(ref["id"] is None or not ref["id"].startswith("5.") for ref in remediation["benchmark_refs"])
+    assert any("role-and-clusterrole" in ref["title"] for ref in remediation["benchmark_refs"])
+
+
+def test_cluster_role_naming_the_same_resources_is_not_ineffective():
+    graph = _single_rule_graph("reader", {
+        "verbs": ["get", "list", "watch"],
+        "resources": ["clusterroles", "clusterrolebindings", "nodes"],
+        "api_groups": ["rbac.authorization.k8s.io", ""], "resource_names": [],
+    })
+
+    assert _ineffective(evaluate_rbac_findings(graph, _CONTEXT)) == []
+
+
+def test_role_naming_only_namespaced_resources_is_not_ineffective():
+    graph = _namespaced_rule_graph({
+        "verbs": ["get", "list"], "resources": ["pods", "configmaps", "roles"],
+        "api_groups": ["", "rbac.authorization.k8s.io"], "resource_names": [],
+    })
+
+    assert _ineffective(evaluate_rbac_findings(graph, _CONTEXT)) == []
+
+
+def test_role_with_wildcard_resources_is_left_to_the_wildcard_rule():
+    graph = _namespaced_rule_graph({
+        "verbs": ["get"], "resources": ["*"], "api_groups": ["*"], "resource_names": [],
+    })
+
+    findings = evaluate_rbac_findings(graph, _CONTEXT)
+
+    assert _ineffective(findings) == []
+    assert any(f["rule_type"] == "wildcard_permissions" for f in findings)
+
+
+def test_same_named_resource_in_another_api_group_is_not_ineffective():
+    # A CRD called "nodes" in a custom group may well be namespaced.
+    graph = _namespaced_rule_graph({
+        "verbs": ["get"], "resources": ["nodes"], "api_groups": ["example.com"], "resource_names": [],
+    })
+
+    assert _ineffective(evaluate_rbac_findings(graph, _CONTEXT)) == []
+
+
+def test_missing_api_groups_is_treated_as_unspecified():
+    graph = _namespaced_rule_graph({"verbs": ["get"], "resources": ["nodes", "namespaces"]})
+
+    flagged = _ineffective(evaluate_rbac_findings(graph, _CONTEXT))
+
+    assert len(flagged) == 1
+    assert "namespaces, nodes" in flagged[0]["description"]

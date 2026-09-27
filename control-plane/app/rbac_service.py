@@ -48,6 +48,24 @@ _WEBHOOK_RESOURCES = {"mutatingwebhookconfigurations", "validatingwebhookconfigu
 # cluster, drowning out actual user misconfigurations. Skipped entirely.
 _BUILTIN_PREFIXES = ("system:", "kubeadm:")
 
+# Well-known cluster-scoped resources by API group (issue #120). A namespaced
+# Role that names any of them grants nothing: they are only reachable through a
+# ClusterRole bound with a ClusterRoleBinding. Keyed by group so a same-named
+# CRD in another API group (which may be namespaced) doesn't match.
+_CLUSTER_SCOPED_RESOURCES = {
+    "": {"nodes", "nodes/proxy", "nodes/metrics", "persistentvolumes", "namespaces"},
+    "rbac.authorization.k8s.io": {"clusterroles", "clusterrolebindings"},
+    "apiextensions.k8s.io": {"customresourcedefinitions"},
+    "storage.k8s.io": {"storageclasses", "volumeattachments", "csidrivers", "csinodes"},
+    "scheduling.k8s.io": {"priorityclasses"},
+    "apiregistration.k8s.io": {"apiservices"},
+    "certificates.k8s.io": {"certificatesigningrequests"},
+    "admissionregistration.k8s.io": {"mutatingwebhookconfigurations", "validatingwebhookconfigurations"},
+    "networking.k8s.io": {"ingressclasses"},
+    "node.k8s.io": {"runtimeclasses"},
+    "policy": {"podsecuritypolicies"},
+}
+
 
 def _is_builtin_role(role_name: str) -> bool:
     return (role_name or "").startswith(_BUILTIN_PREFIXES)
@@ -140,6 +158,21 @@ def _grants_workload_creation(rule: dict) -> bool:
         bool(_WORKLOAD_RESOURCES & set(rule.get("resources") or []))
         and "create" in (rule.get("verbs") or [])
     )
+
+
+def _cluster_scoped_resources_in(rule: dict) -> set[str]:
+    """Cluster-scoped resources a rule names. Wildcard resources are left to the wildcard rule."""
+    resources = set(rule.get("resources") or [])
+    if "*" in resources:
+        return set()
+    # Absent/empty api_groups is unspecified — match any group, as effective_access does.
+    groups = rule.get("api_groups")
+    return {
+        resource
+        for group, names in _CLUSTER_SCOPED_RESOURCES.items()
+        if not groups or group in groups or "*" in groups
+        for resource in resources & names
+    }
 
 
 def _grants_pv_creation(rule: dict) -> bool:
@@ -263,9 +296,22 @@ def _evaluate_role_risks(rules: list, is_cluster_scoped: bool) -> list[dict]:
             ),
         })
 
+    if not is_cluster_scoped:
+        inert = sorted(set().union(*(_cluster_scoped_resources_in(r) for r in rules)))
+        if inert:
+            risks.append({
+                "rule_type": "ineffective_cluster_scope_grant",
+                "severity": "MEDIUM",
+                "detail": (
+                    f"Namespaced Role names cluster-scoped resources ({', '.join(inert)}). "
+                    "A Role cannot grant access to them, so that part of the grant is "
+                    "silently inert and the bound subject will get 403s."
+                ),
+            })
+
     # These resources are cluster-scoped; a grant only means something in a
-    # ClusterRole. Namespaced Role grants on them are inert, so skip them to
-    # avoid flagging permissions that cannot actually be used.
+    # ClusterRole. Namespaced Role grants on them are inert (reported above as
+    # ineffective_cluster_scope_grant), so don't flag them as usable access.
     if is_cluster_scoped:
         if any(_grants_node_proxy(r) for r in rules):
             risks.append({

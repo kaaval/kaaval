@@ -109,10 +109,20 @@ a known gap from the v1.1.0 cleanup; the self-scan path is the primary one.
 | `GET /rbac/scan/latest` | Most recent RBAC scan |
 | `GET /rbac/scan/latest/report.pdf` | Same scan as a PDF |
 | `GET /rbac/scan/diff` | Compare the two most recent scans — `added`, `resolved`, and `unchanged_count` |
+| `POST /rbac/combo-scan` | Run the [combination-escalation](rbac-rules.md) predicates against an RBAC graph you POST (same shape as the live scan) — no cluster needed |
 
 ```bash
 curl -s -X POST http://localhost:8000/rbac/scan -H "Authorization: Bearer $TOKEN" \
   | jq '.findings[0] | {rule_type, severity, contextual_score, remediation}'
+```
+
+To smoke-test the combination predicates against a deployment,
+`hack/dev/combo-scan-graph.json` fires all four `rule_type`s:
+
+```bash
+curl -s -X POST http://localhost:8000/rbac/combo-scan -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -d @hack/dev/combo-scan-graph.json \
+  | jq '[.findings[].rule_type] | unique'
 ```
 
 RBAC findings carry the same scoring/remediation fields as CVE findings,
@@ -135,3 +145,14 @@ no server or DB at all — see [ci-integration.md](ci-integration.md).
 `postgres`, `cve-feeds`, and `kubernetes`, including the fix text for failures.
 Optional failures are reported without failing the command; a required failure
 returns exit code `2`.
+
+## Image report ingestion
+
+`POST /ingest/trivy` and `POST /ingest/grype` accept one native image JSON report,
+require bearer authentication, apply the tenant’s stored risk context, and return
+201 with a persisted scan. `GET /ingest/scans/latest` returns only that tenant’s
+latest import (optional `source=trivy` or `source=grype`; 404 if none).
+
+Bodies are limited by `KAAVAL_MAX_REQUEST_BODY_MB` (default 20 MB); oversized
+input returns 413, invalid report schemas return 422. See the
+[import guide](trivy-grype-integration.md) for commands, response fields, and CLI gating.
