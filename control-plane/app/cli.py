@@ -85,6 +85,16 @@ def _finding_target(f: dict) -> dict:
             "namespace": target.get("namespace"), "api_version": api_version}
 
 
+def _image_package(f: dict) -> str:
+    """Package identity of an image finding, e.g. 'libssl1.1@1.1.1n-0+deb11u4'.
+    One CVE often hits several packages in the same image (openssl and
+    libssl1.1), so the image alone doesn't identify a finding."""
+    affected = (f.get("affected") or [{}])[0]
+    component = affected.get("component") or "unknown-package"
+    version = affected.get("version")
+    return f"{component}@{version}" if version else component
+
+
 def _fail_usage(message: str) -> None:
     print(f"error: {message}", file=sys.stderr)
     sys.exit(2)
@@ -370,6 +380,9 @@ def _print_sarif(result: dict) -> None:
         f = row["raw"]
         binding = _finding_target(f)
         location_name = binding.get("namespace") or "cluster-scoped"
+        target = f"{binding['kind']}/{binding['name']}"
+        if f.get("image"):
+            target += f"/{_image_package(f)}"
         cis_refs = [
             {"benchmark": r["benchmark"], "id": r.get("id")}
             for r in row["refs"]
@@ -380,8 +393,8 @@ def _print_sarif(result: dict) -> None:
             "message": {"text": row["message"]},
             "locations": [{
                 "logicalLocations": [{
-                    "name": f"{binding['kind']}/{binding['name']}",
-                    "fullyQualifiedName": f"{location_name}/{binding['kind']}/{binding['name']}",
+                    "name": target,
+                    "fullyQualifiedName": f"{location_name}/{target}",
                 }]
             }],
             "properties": {
