@@ -187,3 +187,44 @@ def test_accepts_file_like_iterable():
     usage = parse_audit_usage(f)
     assert "system:serviceaccount:payments:api" in usage
     assert len(usage["system:serviceaccount:payments:api"]) == 2
+
+
+# ── Subresources (issue #191) ────────────────────────────────────────────────
+
+VALID_EXEC = (
+    '{"verb":"create","user":{"username":"system:serviceaccount:ops:debugger"},'
+    '"objectRef":{"resource":"pods","subresource":"exec","namespace":"ops","name":"api-0"}}'
+)
+
+VALID_LOG = (
+    '{"verb":"get","user":{"username":"system:serviceaccount:ops:debugger"},'
+    '"objectRef":{"resource":"pods","subresource":"log","namespace":"ops","name":"api-0"}}'
+)
+
+
+def test_subresources_are_kept_as_resource_slash_subresource():
+    usage = parse_audit_usage([VALID_EXEC, VALID_LOG])
+    assert usage == {
+        "system:serviceaccount:ops:debugger": {
+            ("create", "pods/exec", "ops"),
+            ("get", "pods/log", "ops"),
+        }
+    }
+
+
+def test_empty_subresource_leaves_the_resource_unchanged():
+    import json
+
+    event = json.dumps({"verb": "get", "user": {"username": "alice"},
+                        "objectRef": {"resource": "pods", "subresource": "", "namespace": "web"}})
+    assert parse_audit_usage([event]) == {"alice": {("get", "pods", "web")}}
+
+
+def test_malformed_subresource_is_skipped_without_aborting_the_batch():
+    import json
+
+    bad = [json.dumps({"verb": "create", "user": {"username": "alice"},
+                       "objectRef": {"resource": "pods", "subresource": sub, "namespace": "web"}})
+           for sub in (["exec"], {"name": "exec"}, 7)]
+    usage = parse_audit_usage([*bad, VALID_EXEC])
+    assert usage == {"system:serviceaccount:ops:debugger": {("create", "pods/exec", "ops")}}
