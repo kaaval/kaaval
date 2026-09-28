@@ -85,6 +85,16 @@ def _finding_target(f: dict) -> dict:
             "namespace": target.get("namespace"), "api_version": api_version}
 
 
+def _image_package(f: dict) -> str:
+    """Package identity of an image finding, e.g. 'libssl1.1@1.1.1n-0+deb11u4'.
+    One CVE often hits several packages in the same image (openssl and
+    libssl1.1), so the image alone doesn't identify a finding."""
+    affected = (f.get("affected") or [{}])[0]
+    component = affected.get("component") or "unknown-package"
+    version = affected.get("version")
+    return f"{component}@{version}" if version else component
+
+
 def _fail_usage(message: str) -> None:
     print(f"error: {message}", file=sys.stderr)
     sys.exit(2)
@@ -432,9 +442,13 @@ def _print_junit(result: dict) -> None:
         for row in rows:
             binding = _finding_target(row["raw"])
             location = binding.get("namespace") or "cluster-scoped"
+            name = row["title"]
+            if row["raw"].get("image"):
+                # Trivy reuses one vulnerability title for every package it hits.
+                name += f" [{row['raw']['image']} {_image_package(row['raw'])}]"
             testcase = ET.SubElement(testsuite, "testcase", {
                 "classname": f"kaaval.{result['scan_type']}.{row['rule_id']}",
-                "name": row["title"],
+                "name": name,
             })
             failure = ET.SubElement(testcase, "failure", {
                 "message": row["title"],

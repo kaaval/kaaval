@@ -199,3 +199,44 @@ def test_report_openapi_has_no_dangling_local_definitions():
         schema = spec["paths"][f"/ingest/{source}"]["post"]["requestBody"]["content"]["application/json"]["schema"]
         assert "#/$defs/" not in json.dumps(schema)
         assert schema["type"] == "object"
+
+
+def _scan_shared_cve(output, monkeypatch, capsys):
+    raw = (FIXTURES / "trivy_report_shared_cve.json").read_bytes()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(raw)))
+    assert cli.main(["scan", "image", "--from-trivy", "-", "--output", output]) == 0
+    return capsys.readouterr().out
+
+
+def test_junit_names_distinguish_packages_sharing_a_cve(monkeypatch, capsys):
+    suite = ET.fromstring(_scan_shared_cve("junit", monkeypatch, capsys))
+    cases = suite.findall("testcase")
+    title = "openssl: X.400 address type confusion in X.400 GeneralName"
+
+    assert suite.attrib["name"] == "kaaval.image"
+    assert [c.attrib["classname"] for c in cases] == ["kaaval.image.CVE-2023-0286"] * 2
+    assert sorted(c.attrib["name"] for c in cases) == [
+        f"{title} [myregistry.io/payments-api:1.4.2 libssl1.1@1.1.1n-0+deb11u4]",
+        f"{title} [myregistry.io/payments-api:1.4.2 openssl@1.1.1n-0+deb11u4]",
+    ]
+
+
+def test_junit_clean_image_scan_keeps_one_passing_testcase(monkeypatch, capsys):
+    clean = {"SchemaVersion": 2, "ArtifactName": "myregistry.io/clean:1", "ArtifactType": "container_image",
+             "Results": [{"Target": "myregistry.io/clean:1", "Vulnerabilities": []}]}
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(json.dumps(clean).encode())))
+    assert cli.main(["scan", "image", "--from-trivy", "-", "--output", "junit"]) == 0
+    suite = ET.fromstring(capsys.readouterr().out)
+    cases = suite.findall("testcase")
+
+    assert suite.attrib["name"] == "kaaval.image" and suite.attrib["failures"] == "0"
+    assert len(cases) == 1 and cases[0].find("failure") is None
+
+
+def test_rbac_junit_names_are_unchanged(capsys):
+    fixtures = Path(__file__).resolve().parents[2] / "hack" / "dev" / "rbac-fixtures.yaml"
+    assert cli.main(["scan", "rbac", "--manifests", str(fixtures), "--output", "json"]) == 0
+    titles = sorted(f["title"] for f in json.loads(capsys.readouterr().out)["findings"])
+    assert cli.main(["scan", "rbac", "--manifests", str(fixtures), "--output", "junit"]) == 0
+    names = sorted(c.attrib["name"] for c in ET.fromstring(capsys.readouterr().out).findall("testcase"))
+    assert names == titles
