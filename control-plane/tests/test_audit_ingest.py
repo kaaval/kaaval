@@ -187,3 +187,35 @@ def test_accepts_file_like_iterable():
     usage = parse_audit_usage(f)
     assert "system:serviceaccount:payments:api" in usage
     assert len(usage["system:serviceaccount:payments:api"]) == 2
+
+
+# ── Byte lines (issue #192) ──────────────────────────────────────────────────
+
+
+def test_utf8_byte_lines_are_accepted_like_strings():
+    lines = [VALID_CREATE.encode(), bytearray(VALID_GET_NAMESPACED.encode()) + b"\n"]
+    assert parse_audit_usage(lines) == parse_audit_usage([VALID_CREATE, VALID_GET_NAMESPACED])
+
+
+def test_non_utf8_byte_line_is_skipped_and_counted_without_aborting(caplog):
+    bad = b'{"verb":"get","user":{"username":"\xff\xfe"},"objectRef":{"resource":"pods"}}'
+    with caplog.at_level("WARNING", logger="app.audit_ingest"):
+        usage = parse_audit_usage([bad, VALID_GET_NAMESPACED])
+    assert usage == {"system:serviceaccount:payments:api": {("get", "configmaps", "payments")}}
+    assert "non-UTF-8 byte line skipped (total skipped so far: 1)" in caplog.text
+
+
+def test_blank_byte_lines_are_ignored_like_blank_strings(caplog):
+    with caplog.at_level("WARNING", logger="app.audit_ingest"):
+        assert parse_audit_usage([b"", b"   ", b"\n", bytearray(b"\r\n")]) == {}
+    assert caplog.text == ""
+
+
+def test_accepts_binary_file_like_iterable():
+    import io
+
+    stream = io.BytesIO(f"{VALID_CREATE}\n\n{VALID_LIST_CLUSTER}\n".encode())
+    assert parse_audit_usage(stream) == {
+        "system:serviceaccount:payments:api": {("create", "secrets", "payments")},
+        "system:serviceaccount:ops:reader": {("list", "nodes", "")},
+    }
