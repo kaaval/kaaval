@@ -7,7 +7,8 @@ subject:
 
     parse_audit_usage(lines) -> dict[subject_key, set[tuple]]
 
-where each tuple is ``(verb, resource, namespace)``.
+where each tuple is ``(verb, resource, namespace)``. A subresource is folded into
+the resource the way RBAC rules name it, e.g. ``pods/exec`` or ``pods/log``.
 
 This is the "used" side of the granted-vs-used least-privilege diff. It plugs
 into the same ingestion seam the Trivy/Grype adapter uses and feeds the
@@ -148,6 +149,16 @@ def parse_audit_usage(lines: Iterable[str]) -> dict[str, set[tuple]]:
             skipped += 1
             logger.warning("[audit_ingest] invalid resource or namespace skipped (total skipped so far: %d)", skipped)
             continue
+
+        # RBAC grants subresources as "resource/subresource" (pods/exec, pods/log),
+        # so keep the same shape for the granted-vs-used diff.
+        subresource = object_ref.get("subresource")
+        if subresource not in (None, ""):
+            if not isinstance(subresource, str):
+                skipped += 1
+                logger.warning("[audit_ingest] invalid subresource skipped (total skipped so far: %d)", skipped)
+                continue
+            resource = f"{resource}/{subresource}"
 
         usage.setdefault(subject_key, set()).add((verb, resource, namespace))
 
