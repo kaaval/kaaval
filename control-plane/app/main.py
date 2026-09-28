@@ -10,11 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from sqlalchemy.exc import DisconnectionError, InterfaceError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from . import __version__, models, database, auth, audit
 from .cve_service import cve_service as _cve_service
-from .health import run_deep_checks
+from .health import _DB_FIX, _safe_url, run_deep_checks
 from .routers import cve, rbac, ingest
 
 logger = logging.getLogger(__name__)
@@ -111,9 +112,49 @@ async def _scheduled_cve_refresh():
         db.close()
 
 
+class SchemaInitializationError(RuntimeError):
+    """Startup could not create the schema. Details are in the log entry with the same error_id."""
+
+    def __init__(self, error_id: str, kind: str):
+        self.error_id = error_id
+        self.kind = kind
+        super().__init__(f"schema initialization failed ({kind}); see the log entry with error_id={error_id}")
+
+
+def initialize_schema(engine) -> None:
+    """Create missing tables. On failure, log once under an error_id and fail startup.
+
+    Failing is deliberate: serving requests on a half-initialized schema would turn
+    a broken deployment into one that looks healthy.
+    """
+    try:
+        models.Base.metadata.create_all(bind=engine)
+    except SQLAlchemyError as exc:
+        error_id = uuid.uuid4().hex[:12]
+        unavailable = isinstance(exc, (OperationalError, InterfaceError, DisconnectionError)) or getattr(
+            exc, "connection_invalidated", False
+        )
+        kind = "database unavailable" if unavailable else "schema error"
+        # First line of the driver message only (no SQL statement or parameters), password masked.
+        detail = (str(getattr(exc, "orig", None) or exc).strip().splitlines() or [""])[0]
+        if engine.url.password:
+            detail = detail.replace(str(engine.url.password), "***")
+        logger.error(
+            "error_id=%s schema initialization failed: %s at %s (%s: %s)%s",
+            error_id,
+            kind,
+            _safe_url(engine),
+            exc.__class__.__name__,
+            detail,
+            f" — {_DB_FIX}" if unavailable else "",
+        )
+        # from None: the chained traceback would repeat the raw driver message and SQL.
+        raise SchemaInitializationError(error_id, kind) from None
+
+
 @app.on_event("startup")
 async def startup_event():
-    models.Base.metadata.create_all(bind=database.engine)
+    initialize_schema(database.engine)
 
     db = database.SessionLocal()
     try:
