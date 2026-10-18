@@ -279,3 +279,29 @@ def test_schema_init_failure_fails_startup_instead_of_serving(monkeypatch, caplo
 
     assert seeded == []  # nothing after schema creation ran
     assert not app_main._scheduler.running
+
+
+@pytest.mark.parametrize("query_key", ["password", "sslpassword"])
+def test_schema_init_masks_query_passwords_in_url_and_driver_detail(monkeypatch, caplog, query_key):
+    secret = "query-only-review-password"
+    engine = create_engine(
+        f"postgresql://kaaval@db.internal:5432/kaaval_db?{query_key}={secret}&application_name=kaaval"
+    )
+    exc = OperationalError("CREATE TABLE tenants (...)", {}, Exception(f"connection refused: {secret}"))
+    monkeypatch.setattr(models.Base.metadata, "create_all", _failing_create_all(exc))
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        with pytest.raises(app_main.SchemaInitializationError) as caught:
+            app_main.initialize_schema(engine)
+    assert secret not in caplog.text
+    assert secret not in str(caught.value)
+    assert "db.internal" in caplog.text and "application_name=kaaval" in caplog.text
+    assert engine.url.query[query_key] == secret  # logging must not mutate connection configuration
+
+
+def test_deep_health_masks_query_passwords(monkeypatch):
+    secret = "deep-health-review-password"
+    engine = create_engine(f"postgresql://kaaval@db.internal/kaaval_db?password={secret}")
+    monkeypatch.setattr(engine, "connect", lambda: (_ for _ in ()).throw(OperationalError("", {}, Exception(secret))))
+    result = check_database(engine)
+    assert not result["ok"]
+    assert secret not in str(result)

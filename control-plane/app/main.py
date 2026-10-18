@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from . import __version__, models, database, auth, audit
 from .cve_service import cve_service as _cve_service
-from .health import _DB_FIX, _safe_url, run_deep_checks
+from .health import _DB_FIX, _database_passwords, _safe_url, run_deep_checks
 from .routers import cve, rbac, ingest
 
 logger = logging.getLogger(__name__)
@@ -137,8 +137,8 @@ def initialize_schema(engine) -> None:
         kind = "database unavailable" if unavailable else "schema error"
         # First line of the driver message only (no SQL statement or parameters), password masked.
         detail = (str(getattr(exc, "orig", None) or exc).strip().splitlines() or [""])[0]
-        if engine.url.password:
-            detail = detail.replace(str(engine.url.password), "***")
+        for password in sorted(_database_passwords(engine), key=len, reverse=True):
+            detail = detail.replace(password, "***")
         logger.error(
             "error_id=%s schema initialization failed: %s at %s (%s: %s)%s",
             error_id,
