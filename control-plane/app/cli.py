@@ -445,9 +445,13 @@ def _print_junit(result: dict) -> None:
         for row in rows:
             binding = _finding_target(row["raw"])
             location = binding.get("namespace") or "cluster-scoped"
+            name = row["title"]
+            if row["raw"].get("image"):
+                # Trivy reuses one vulnerability title for every package it hits.
+                name += f" [{row['raw']['image']} {_image_package(row['raw'])}]"
             testcase = ET.SubElement(testsuite, "testcase", {
                 "classname": f"kaaval.{result['scan_type']}.{row['rule_id']}",
-                "name": row["title"],
+                "name": name,
             })
             failure = ET.SubElement(testcase, "failure", {
                 "message": row["title"],
