@@ -210,3 +210,98 @@ def test_shallow_health_stays_fast_and_simple():
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
+
+# ── Schema initialization failure (issue #193) ─────────────────────────────────
+
+import asyncio
+import logging
+
+from sqlalchemy.exc import OperationalError, ProgrammingError
+
+from app import main as app_main
+
+_SECRET_URL = "postgresql://kaaval:sekrit-pw@db.internal:5432/kaaval_db"
+
+
+def _failing_create_all(exc):
+    def _raise(*args, **kwargs):
+        raise exc
+    return _raise
+
+
+def _init_schema_failure(monkeypatch, caplog, exc):
+    monkeypatch.setattr(models.Base.metadata, "create_all", _failing_create_all(exc))
+    engine = create_engine(_SECRET_URL)  # never connects: create_all is patched
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        with pytest.raises(app_main.SchemaInitializationError) as ctx:
+            app_main.initialize_schema(engine)
+    return ctx.value, caplog.text
+
+
+def test_schema_init_db_unavailable_logs_error_id_and_fix_without_credentials(monkeypatch, caplog):
+    exc = OperationalError(
+        "CREATE TABLE tenants (...)", {},
+        Exception('connection to server at "db.internal", port 5432 failed: FATAL: password '
+                  'authentication failed for user "kaaval" (password sekrit-pw)'),
+    )
+    err, log = _init_schema_failure(monkeypatch, caplog, exc)
+
+    assert err.kind == "database unavailable"
+    assert f"error_id={err.error_id}" in log and err.error_id in str(err)
+    assert "database unavailable" in log and "OperationalError" in log
+    assert "docker compose" in log  # the same fix hint the health check gives
+    assert "db.internal" in log
+    assert "sekrit-pw" not in log and "sekrit-pw" not in str(err)
+    assert "CREATE TABLE" not in log  # no SQL statement in the log line
+    assert err.__cause__ is None and err.__suppress_context__
+
+
+def test_schema_init_schema_error_is_distinguished_from_unavailability(monkeypatch, caplog):
+    exc = ProgrammingError("CREATE TABLE tenants (...)", {}, Exception("permission denied for schema public"))
+    err, log = _init_schema_failure(monkeypatch, caplog, exc)
+
+    assert err.kind == "schema error"
+    assert "schema error" in log and "permission denied for schema public" in log
+    assert "docker compose" not in log
+    assert "sekrit-pw" not in log
+
+
+def test_schema_init_failure_fails_startup_instead_of_serving(monkeypatch, caplog):
+    exc = OperationalError("CREATE TABLE tenants (...)", {}, Exception("could not connect"))
+    monkeypatch.setattr(models.Base.metadata, "create_all", _failing_create_all(exc))
+    seeded = []
+    monkeypatch.setattr(app_main, "seed_admin_user", lambda db: seeded.append(db))
+
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        with pytest.raises(app_main.SchemaInitializationError):
+            asyncio.run(app_main.startup_event())
+
+    assert seeded == []  # nothing after schema creation ran
+    assert not app_main._scheduler.running
+
+
+@pytest.mark.parametrize("query_key", ["password", "sslpassword"])
+def test_schema_init_masks_query_passwords_in_url_and_driver_detail(monkeypatch, caplog, query_key):
+    secret = "query-only-review-password"
+    engine = create_engine(
+        f"postgresql://kaaval@db.internal:5432/kaaval_db?{query_key}={secret}&application_name=kaaval"
+    )
+    exc = OperationalError("CREATE TABLE tenants (...)", {}, Exception(f"connection refused: {secret}"))
+    monkeypatch.setattr(models.Base.metadata, "create_all", _failing_create_all(exc))
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        with pytest.raises(app_main.SchemaInitializationError) as caught:
+            app_main.initialize_schema(engine)
+    assert secret not in caplog.text
+    assert secret not in str(caught.value)
+    assert "db.internal" in caplog.text and "application_name=kaaval" in caplog.text
+    assert engine.url.query[query_key] == secret  # logging must not mutate connection configuration
+
+
+def test_deep_health_masks_query_passwords(monkeypatch):
+    secret = "deep-health-review-password"
+    engine = create_engine(f"postgresql://kaaval@db.internal/kaaval_db?password={secret}")
+    monkeypatch.setattr(engine, "connect", lambda: (_ for _ in ()).throw(OperationalError("", {}, Exception(secret))))
+    result = check_database(engine)
+    assert not result["ok"]
+    assert secret not in str(result)
