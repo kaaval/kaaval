@@ -380,6 +380,9 @@ def _print_sarif(result: dict) -> None:
         f = row["raw"]
         binding = _finding_target(f)
         location_name = binding.get("namespace") or "cluster-scoped"
+        target = f"{binding['kind']}/{binding['name']}"
+        if f.get("image"):
+            target += f"/{_image_package(f)}"
         cis_refs = [
             {"benchmark": r["benchmark"], "id": r.get("id")}
             for r in row["refs"]
@@ -390,8 +393,8 @@ def _print_sarif(result: dict) -> None:
             "message": {"text": row["message"]},
             "locations": [{
                 "logicalLocations": [{
-                    "name": f"{binding['kind']}/{binding['name']}",
-                    "fullyQualifiedName": f"{location_name}/{binding['kind']}/{binding['name']}",
+                    "name": target,
+                    "fullyQualifiedName": f"{location_name}/{target}",
                 }]
             }],
             "properties": {

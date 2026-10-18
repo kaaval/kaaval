@@ -208,6 +208,32 @@ def _scan_shared_cve(output, monkeypatch, capsys):
     return capsys.readouterr().out
 
 
+def test_sarif_locations_distinguish_packages_sharing_a_cve(monkeypatch, capsys):
+    run = json.loads(_scan_shared_cve("sarif", monkeypatch, capsys))["runs"][0]
+    results = run["results"]
+    locations = [r["locations"][0]["logicalLocations"][0] for r in results]
+
+    assert [r["ruleId"] for r in results] == ["CVE-2023-0286", "CVE-2023-0286"]
+    assert sorted(loc["name"] for loc in locations) == [
+        "ContainerImage/myregistry.io/payments-api:1.4.2/libssl1.1@1.1.1n-0+deb11u4",
+        "ContainerImage/myregistry.io/payments-api:1.4.2/openssl@1.1.1n-0+deb11u4",
+    ]
+    assert all(loc["fullyQualifiedName"] == f"cluster-scoped/{loc['name']}" for loc in locations)
+    # still one rule, scored from the contextual score
+    assert [rule["id"] for rule in run["tool"]["driver"]["rules"]] == ["CVE-2023-0286"]
+    assert run["tool"]["driver"]["rules"][0]["properties"]["security-severity"]
+
+
+def test_rbac_sarif_locations_are_unchanged(tmp_path, capsys):
+    fixtures = Path(__file__).resolve().parents[2] / "hack" / "dev" / "rbac-fixtures.yaml"
+    assert cli.main(["scan", "rbac", "--manifests", str(fixtures), "--output", "sarif"]) == 0
+    for result in json.loads(capsys.readouterr().out)["runs"][0]["results"]:
+        name = result["locations"][0]["logicalLocations"][0]["name"]
+        assert "@" not in name and name.count("/") == 1
+
+
+
+
 def test_junit_names_distinguish_packages_sharing_a_cve(monkeypatch, capsys):
     suite = ET.fromstring(_scan_shared_cve("junit", monkeypatch, capsys))
     cases = suite.findall("testcase")
