@@ -39,6 +39,7 @@ controlPlane:
   service:
     type: ClusterIP
     port: 8000
+    targetPort: 8000
   resources: {}
   env: {}          # safe to merge into templates; empty = no extra ConfigMap
   envFrom: []      # #96 will wire the Secret here
