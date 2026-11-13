@@ -36,3 +36,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # CodeQL init/analyze exchange version-specific configuration.
+      codeql:
+        patterns:
+          - "github/codeql-action*"
