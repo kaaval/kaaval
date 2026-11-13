@@ -7,7 +7,8 @@ subject:
 
     parse_audit_usage(lines) -> dict[subject_key, set[tuple]]
 
-where each tuple is ``(verb, resource, namespace)``.
+where each tuple is ``(verb, resource, namespace)``. A subresource is folded into
+the resource the way RBAC rules name it, e.g. ``pods/exec`` or ``pods/log``.
 
 This is the "used" side of the granted-vs-used least-privilege diff. It plugs
 into the same ingestion seam the Trivy/Grype adapter uses and feeds the
@@ -16,6 +17,9 @@ string, i.e. ``user.username`` — e.g. ``system:serviceaccount:ns:sa`` or a
 plain username).
 
 Resilience contract (see tests/test_error_surfacing.py for the pattern):
+  - lines may be ``str`` or UTF-8 ``bytes`` (e.g. a file opened in binary mode
+    or a gzip reader); bytes that aren't valid UTF-8 are skipped + counted
+  - blank lines, str or bytes, are ignored without a warning
   - one malformed JSON line is skipped + counted, never crashes the batch
   - missing user info is skipped + counted
   - an empty input yields an empty dict
@@ -54,7 +58,7 @@ KNOWN_VERBS = frozenset(
 
 
 def _iter_events(
-    lines: Iterable[str],
+    lines: Iterable[str | bytes],
 ) -> Iterator[tuple[Optional[dict], Optional[str]]]:
     """Yield ``(event_dict, warn_msg)`` per line.
 
@@ -64,6 +68,14 @@ def _iter_events(
     for raw in lines:
         if raw is None:
             continue
+        if isinstance(raw, (bytes, bytearray)):
+            # Audit logs are UTF-8. Decode explicitly rather than letting
+            # json.loads guess an encoding for byte input.
+            try:
+                raw = bytes(raw).decode("utf-8")
+            except UnicodeDecodeError:
+                yield None, "non-UTF-8 byte line skipped"
+                continue
         line = raw.strip() if isinstance(raw, str) else raw
         if not line:
             continue  # blank lines are not warnings, just ignored
@@ -78,13 +90,14 @@ def _iter_events(
         yield event, None
 
 
-def parse_audit_usage(lines: Iterable[str]) -> dict[str, set[tuple]]:
+def parse_audit_usage(lines: Iterable[str | bytes]) -> dict[str, set[tuple]]:
     """
     Parse Kubernetes apiserver audit JSON-lines into per-subject usage sets.
 
     Args:
-        lines: iterable of raw audit-log lines (strings). No file I/O is done
-            here — pass an open file object or a list of strings.
+        lines: iterable of raw audit-log lines, ``str`` or UTF-8 ``bytes``. No
+            file I/O is done here — pass an open file object (text or binary)
+            or a list of lines.
 
     Returns:
         ``{subject_key: {(verb, resource, namespace), ...}}``.
@@ -148,6 +161,16 @@ def parse_audit_usage(lines: Iterable[str]) -> dict[str, set[tuple]]:
             skipped += 1
             logger.warning("[audit_ingest] invalid resource or namespace skipped (total skipped so far: %d)", skipped)
             continue
+
+        # RBAC grants subresources as "resource/subresource" (pods/exec, pods/log),
+        # so keep the same shape for the granted-vs-used diff.
+        subresource = object_ref.get("subresource")
+        if subresource not in (None, ""):
+            if not isinstance(subresource, str):
+                skipped += 1
+                logger.warning("[audit_ingest] invalid subresource skipped (total skipped so far: %d)", skipped)
+                continue
+            resource = f"{resource}/{subresource}"
 
         usage.setdefault(subject_key, set()).add((verb, resource, namespace))
 

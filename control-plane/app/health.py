@@ -44,9 +44,22 @@ _DB_FIX = (
 )
 
 
+def _database_passwords(engine) -> tuple[str, ...]:
+    """Passwords may be supplied in URL authority or libpq query options."""
+    values = [engine.url.password]
+    for key in ("password", "sslpassword"):
+        value = engine.url.query.get(key)
+        values.extend(value if isinstance(value, tuple) else (value,))
+    return tuple(str(value) for value in values if value)
+
+
 def _safe_url(engine) -> str:
-    # SQLAlchemy masks the password when rendering a URL object
-    return engine.url.render_as_string(hide_password=True)
+    # hide_password only masks URL authority, not libpq's query passwords.
+    query = {
+        key: "***" if key in {"password", "sslpassword"} else value
+        for key, value in engine.url.query.items()
+    }
+    return engine.url.set(query=query).render_as_string(hide_password=True)
 
 
 def check_database(engine) -> HealthCheckResult:
