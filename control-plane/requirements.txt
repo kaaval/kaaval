@@ -1,5 +1,5 @@
 fastapi==0.141.1
-uvicorn[standard]==0.52.1
+uvicorn[standard]==0.54.0
 sqlalchemy==2.0.54
 psycopg2-binary==2.9.13
 pydantic[email]==2.13.5
